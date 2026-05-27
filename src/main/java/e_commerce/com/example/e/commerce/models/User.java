@@ -3,7 +3,10 @@ package e_commerce.com.example.e.commerce.models;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.Column;
 import jakarta.validation.constraints.Email;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -11,18 +14,23 @@ import lombok.NoArgsConstructor;
 import lombok.NonNull;
 
 @Entity
+@Table(name = "app_user")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class User {
     @Id
-    @GeneratedValue
-    Long id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
     @NonNull
-    String name;
+    private String name;
+
     @NonNull
     @Email
-    String email;
+    @Column(nullable = false, unique = true)
+    private String email;
+
     @NonNull
-    String password;
+    private String password;
 }

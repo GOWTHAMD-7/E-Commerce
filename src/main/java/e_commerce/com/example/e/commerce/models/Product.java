@@ -24,4 +24,6 @@ public class Product {
     Double price;
     @NonNull
     Integer stock;
+    @NonNull
+    String password;
 }

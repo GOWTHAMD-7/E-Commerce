@@ -27,7 +27,7 @@
 		<url/>
 	</scm>
 	<properties>
-		<java.version>25</java.version>
+		<java.version>17</java.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -61,7 +61,7 @@
 			<scope>compile</scope>
 		</dependency>
 
-		<dependency>
+	<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
 			<scope>runtime</scope>
@@ -75,11 +75,13 @@
 			<scope>compile</scope>
 		</dependency>
 
-		<dependency>
-			<groupId>org.projectlombok</groupId>
-			<artifactId>lombok</artifactId>
-			<optional>true</optional>
-		</dependency>
+
+	<dependency>
+		<groupId>org.projectlombok</groupId>
+		<artifactId>lombok</artifactId>
+		<version>1.18.46</version>
+		<optional>true</optional>
+	</dependency>
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -108,10 +110,11 @@
 					</excludes>
 				</configuration>
 			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<executions>
+		<plugin>
+			<groupId>org.apache.maven.plugins</groupId>
+			<artifactId>maven-compiler-plugin</artifactId>
+			<version>3.11.0</version>
+			<executions>
 					<execution>
 						<id>default-compile</id>
 						<phase>compile</phase>
@@ -123,6 +126,7 @@
 								<path>
 									<groupId>org.projectlombok</groupId>
 									<artifactId>lombok</artifactId>
+									<version>1.18.46</version>
 								</path>
 							</annotationProcessorPaths>
 						</configuration>
@@ -138,6 +142,7 @@
 								<path>
 									<groupId>org.projectlombok</groupId>
 									<artifactId>lombok</artifactId>
+									<version>1.18.46</version>
 								</path>
 							</annotationProcessorPaths>
 						</configuration>
