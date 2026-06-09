@@ -13,6 +13,7 @@ import lombok.NonNull;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+
 public class Product {
     @Id
     @GeneratedValue
@@ -20,10 +21,10 @@ public class Product {
     @NonNull
     String name;
     String description;
+    String category;
     @NonNull
     Double price;
     @NonNull
     Integer stock;
-    @NonNull
-    String password;
+
 }

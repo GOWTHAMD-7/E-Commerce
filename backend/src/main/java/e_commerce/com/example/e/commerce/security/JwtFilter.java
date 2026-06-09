@@ -1,60 +1,52 @@
 package e_commerce.com.example.e.commerce.security;
 
 import e_commerce.com.example.e.commerce.services.JwtService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.IOException;
+import java.util.Collections;
 
 @Component
 public class JwtFilter extends OncePerRequestFilter {
 
-    @Autowired
-    private JwtService jwtService;
+	private final JwtService jwtService;
 
-    @Override
-    protected void doFilterInternal(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain)
-            throws ServletException, IOException {
+	public JwtFilter(JwtService jwtService) {
+		this.jwtService = jwtService;
+	}
 
-        // Get Authorization header
-        String authHeader = request.getHeader("Authorization");
+	@Override
+	protected void doFilterInternal(HttpServletRequest request,
+									HttpServletResponse response,
+									FilterChain filterChain)
+			throws ServletException, IOException {
 
-        // Check if header exists and starts with "Bearer "
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            // No token, proceed to next filter (could be public endpoint)
-            filterChain.doFilter(request, response);
-            return;
-        }
+		final String authHeader = request.getHeader("Authorization");
 
-        // Extract token (remove "Bearer " prefix)
-        String token = authHeader.substring(7);
+		if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+			filterChain.doFilter(request, response);
+			return;
+		}
 
-        // Validate token
-        if (jwtService.isTokenValid(token)) {
-            // Token is valid, extract email
-            String email = jwtService.extractEmail(token);
+		final String token = authHeader.substring(7);
 
-            // Create authentication token and set in Spring Security context
-            UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(
-                            email,
-                            null,
-                            null
-                    );
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-        }
-        // If token is invalid, we don't authenticate (endpoint will reject if protected)
+		if (jwtService.isTokenValid(token)) {
+			String email = jwtService.extractEmail(token);
+			UsernamePasswordAuthenticationToken authentication =
+					new UsernamePasswordAuthenticationToken(email, null, Collections.emptyList());
+			authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+			SecurityContextHolder.getContext().setAuthentication(authentication);
+		}
 
-        filterChain.doFilter(request, response);
-    }
+		filterChain.doFilter(request, response);
+	}
 }
