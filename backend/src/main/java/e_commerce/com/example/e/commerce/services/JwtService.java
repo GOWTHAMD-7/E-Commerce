@@ -1,5 +1,6 @@
 package e_commerce.com.example.e.commerce.services;
 
+import e_commerce.com.example.e.commerce.models.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -19,16 +20,18 @@ public class JwtService{
 	@Value("${jwt.expiration:3600000}")
 	private long jwtExpiration;
 
-	public String generateToken(String email) {
-		return buildToken(email, jwtExpiration);
+	public String generateToken(User user) {
+		return buildToken(user, jwtExpiration);
 	}
 
-	private String buildToken(String email, long expiration) {
+	private String buildToken(User user, long expiration) {
 		Date issuedAt = new Date(System.currentTimeMillis());
 		Date expirationDate = new Date(System.currentTimeMillis() + expiration);
 
 		return Jwts.builder()
-				.subject(email)
+				.subject(user.getEmail())
+				.claim("userId", user.getId())
+				.claim("role", user.getRole().name())
 				.issuedAt(issuedAt)
 				.expiration(expirationDate)
 				.signWith(getSigningKey())
@@ -37,6 +40,15 @@ public class JwtService{
 
 	public String extractEmail(String token) {
 		return extractClaim(token, Claims::getSubject);
+	}
+
+	public String extractRole(String token) {
+		return extractClaim(token, claims -> claims.get("role", String.class));
+	}
+
+	public Long extractUserId(String token) {
+		Number userId = extractClaim(token, claims -> claims.get("userId", Number.class));
+		return userId != null ? userId.longValue() : null;
 	}
 
 	public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {

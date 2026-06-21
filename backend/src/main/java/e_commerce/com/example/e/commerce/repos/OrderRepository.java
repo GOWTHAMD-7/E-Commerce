@@ -9,4 +9,6 @@ import java.util.List;
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
     List<Order> findByUserEmailOrderByIdDesc(String email);
+    boolean existsByUserIdAndOrderItemsProductId(Long userId, Long productId);
+    List<Order> findByStatusAndOrderDateBefore(String status, java.time.LocalDateTime cutoff);
 }
