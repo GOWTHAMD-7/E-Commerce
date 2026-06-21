@@ -33,5 +33,16 @@ public class Order {
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> orderItems;
-}
 
+    private String shippingFullName;
+    private String shippingPhoneNumber;
+    private String shippingAddressLine1;
+    private String shippingAddressLine2;
+    private String shippingCity;
+    private String shippingState;
+    private String shippingCountry;
+    private String shippingPincode;
+
+    private String status = "PENDING";
+    private java.time.LocalDateTime orderDate = java.time.LocalDateTime.now();
+}

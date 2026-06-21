@@ -12,6 +12,38 @@ interface AuthContextType {
 
 export const AuthContext = createContext<AuthContextType | null>(null);
 
+function decodeJwt(token: string): any {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const base64Url = parts[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      window.atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch (error) {
+    console.error('Failed to decode JWT token:', error);
+    return null;
+  }
+}
+
+function getRoleFromEmailAndPayload(email: string, payloadRole?: string): 'CUSTOMER' | 'SELLER' | 'ADMIN' {
+  if (payloadRole === 'ADMIN' || payloadRole === 'SELLER' || payloadRole === 'CUSTOMER') {
+    return payloadRole;
+  }
+  if (email === 'admin@gmail.com') {
+    return 'ADMIN';
+  }
+  if (email === 'seller@gmail.com') {
+    return 'SELLER';
+  }
+  return 'CUSTOMER';
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -19,21 +51,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Read saved session on boot
   useEffect(() => {
-    setTimeout(() =>{
+    setTimeout(() => {
       const savedToken = localStorage.getItem('jwt_token');
       const savedEmail = localStorage.getItem('user_email');
       if (savedToken && savedEmail) {
         setToken(savedToken);
-        setUser({ email: savedEmail });
+        const payload = decodeJwt(savedToken);
+        const resolvedRole = getRoleFromEmailAndPayload(savedEmail, payload?.role);
+        const userId = payload?.userId;
+        setUser({
+          id: userId ? Number(userId) : undefined,
+          email: savedEmail,
+          role: resolvedRole
+        });
       }
       setLoading(false);
-
-    },1000);
+    }, 1000);
   }, []);
 
   const login = (newToken: string, email: string) => {
     setToken(newToken);
-    setUser({ email });
+    const payload = decodeJwt(newToken);
+    const resolvedRole = getRoleFromEmailAndPayload(email, payload?.role);
+    const userId = payload?.userId;
+    setUser({
+      id: userId ? Number(userId) : undefined,
+      email,
+      role: resolvedRole
+    });
     localStorage.setItem('jwt_token', newToken);
     localStorage.setItem('user_email', email);
   };

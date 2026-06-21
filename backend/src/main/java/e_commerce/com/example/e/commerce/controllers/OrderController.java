@@ -26,19 +26,29 @@ public class OrderController {
     }
 
     @PostMapping("/checkout")
-    public ResponseEntity<?> checkout() {
-        try {
-            String email = getLoggedInUserEmail();
-            Order order = orderService.checkout(email);
-            return ResponseEntity.ok(order);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<Order> checkout(@RequestParam Long addressId) {
+        String email = getLoggedInUserEmail();
+        Order order = orderService.checkout(email, addressId);
+        return ResponseEntity.ok(order);
     }
 
     @GetMapping
     public ResponseEntity<List<Order>> getUserOrders() {
         String email = getLoggedInUserEmail();
         return ResponseEntity.ok(orderService.getUserOrders(email));
+    }
+
+    @PostMapping("/{orderId}/cancel-request")
+    public ResponseEntity<String> cancelRequest(@PathVariable Long orderId) {
+        String email = getLoggedInUserEmail();
+        orderService.cancelRequest(email, orderId);
+        return ResponseEntity.ok("Verification OTP code sent to your email.");
+    }
+
+    @PostMapping("/{orderId}/cancel-confirm")
+    public ResponseEntity<String> cancelConfirm(@PathVariable Long orderId, @RequestParam String otp) {
+        String email = getLoggedInUserEmail();
+        orderService.cancelConfirm(email, orderId, otp);
+        return ResponseEntity.ok("Order cancelled successfully.");
     }
 }

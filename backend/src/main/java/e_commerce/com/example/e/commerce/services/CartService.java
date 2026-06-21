@@ -30,7 +30,7 @@ public class CartService {
     }
 
     public ProductCart getCartForUser(String email) {
-        return cartRepository.findByUserEmail(email)
+        ProductCart cart = cartRepository.findByUserEmail(email)
                 .orElseGet(() -> {
                     User user = userRepository.findByEmail(email)
                             .orElseThrow(() -> new RuntimeException("User not found"));
@@ -39,12 +39,44 @@ public class CartService {
                     newCart.setCart(new ArrayList<>());
                     return cartRepository.save(newCart);
                 });
+
+        // Defensive self-healing check to merge any duplicate product sets in the database cart
+        if (cart.getCart() != null && !cart.getCart().isEmpty()) {
+            boolean hasDuplicates = false;
+            java.util.List<ProductSet> uniqueItems = new ArrayList<>();
+            for (ProductSet item : cart.getCart()) {
+                if (item.getProduct() == null || item.getProduct().getId() == null) {
+                    uniqueItems.add(item);
+                    continue;
+                }
+                Optional<ProductSet> existing = uniqueItems.stream()
+                        .filter(u -> u.getProduct() != null && item.getProduct().getId().equals(u.getProduct().getId()))
+                        .findFirst();
+                if (existing.isPresent()) {
+                    existing.get().setQuantity(existing.get().getQuantity() + item.getQuantity());
+                    hasDuplicates = true;
+                } else {
+                    uniqueItems.add(item);
+                }
+            }
+            if (hasDuplicates) {
+                cart.getCart().clear();
+                cart.getCart().addAll(uniqueItems);
+                cart = cartRepository.save(cart);
+            }
+        }
+
+        return cart;
     }
 
     public ProductCart addToCart(String email, Long productId, int quantity) {
         ProductCart cart = getCartForUser(email);
         Product product = productRepo.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
+
+        if (product.getSeller() != null && product.getSeller().getId().equals(cart.getUser().getId())) {
+            throw new RuntimeException("Sellers cannot purchase their own products");
+        }
 
         if (product.getStock() < quantity) {
             throw new RuntimeException("Insufficient product stock");
