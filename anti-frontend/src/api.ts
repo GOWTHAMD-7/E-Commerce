@@ -1,7 +1,7 @@
 import type { Product, AuthResponse, Address } from './types';
 
 // Spring Boot default port is 8080
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 export function sanitizeProduct(product: Product): Product {
     if (!product) return product;

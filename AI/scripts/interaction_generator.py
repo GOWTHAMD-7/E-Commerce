@@ -101,7 +101,9 @@ def generate_interactions(users, products):
             "shipping_city": fake.city(),
             "shipping_state": fake.state(),
             "shipping_country": fake.country(),
-            "shipping_pincode": fake.postcode()
+            "shipping_pincode": fake.postcode(),
+            "order_date": order_date,
+            "status": "DELIVERED"
         })
         
         num_items = random.randint(1, 5)

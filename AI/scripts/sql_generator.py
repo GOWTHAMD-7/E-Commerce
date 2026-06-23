@@ -24,8 +24,6 @@ def generate_users_sql(users, output_dir):
 def generate_products_sql(products, output_dir):
     lines_prod = ["-- PRODUCTS SQL\n"]
     lines_img = ["-- PRODUCT IMAGES\n"]
-    lines_size = ["-- PRODUCT SIZES\n"]
-    lines_color = ["-- PRODUCT COLORS\n"]
     
     for p in products:
         sql = f"INSERT INTO product (id, name, description, category, brand, price, stock, main_image, rating, review_count, seller_id) VALUES ({p['id']}, {escape_sql(p['name'])}, {escape_sql(p['description'])}, {escape_sql(p['category'])}, {escape_sql(p['brand'])}, {p['price']}, {p['stock']}, {escape_sql(p['mainImage'])}, {p['rating']}, {p['reviewCount']}, {p['seller_id']});\n"
@@ -35,14 +33,6 @@ def generate_products_sql(products, output_dir):
             if img.strip():
                 lines_img.append(f"INSERT INTO product_images (product_id, images) VALUES ({p['id']}, {escape_sql(img)});\n")
             
-        for size in p['sizes']:
-            if size.strip():
-                lines_size.append(f"INSERT INTO product_sizes (product_id, sizes) VALUES ({p['id']}, {escape_sql(size)});\n")
-            
-        for color in p['colors']:
-            if color.strip():
-                lines_color.append(f"INSERT INTO product_colors (product_id, colors) VALUES ({p['id']}, {escape_sql(color)});\n")
-            
     if products:
         max_id = max(p['id'] for p in products)
         lines_prod.append(f"SELECT setval('product_id_seq', {max_id});\n")
@@ -51,10 +41,6 @@ def generate_products_sql(products, output_dir):
         f.writelines(lines_prod)
         f.write("\n")
         f.writelines(lines_img)
-        f.write("\n")
-        f.writelines(lines_size)
-        f.write("\n")
-        f.writelines(lines_color)
 
 def generate_reviews_sql(reviews, output_dir):
     lines = ["-- REVIEWS SQL\n"]
@@ -81,7 +67,7 @@ def generate_favorites_sql(favorites, output_dir):
 def generate_orders_sql(orders, order_items, output_dir):
     lines = ["-- ORDERS SQL\n"]
     for o in orders:
-        sql = f"INSERT INTO orders (id, user_id, shipping_full_name, shipping_phone_number, shipping_address_line1, shipping_address_line2, shipping_city, shipping_state, shipping_country, shipping_pincode) VALUES ({o['id']}, {o['user_id']}, {escape_sql(o['shipping_full_name'])}, {escape_sql(o['shipping_phone_number'])}, {escape_sql(o['shipping_address_line1'])}, {escape_sql(o['shipping_address_line2'])}, {escape_sql(o['shipping_city'])}, {escape_sql(o['shipping_state'])}, {escape_sql(o['shipping_country'])}, {escape_sql(o['shipping_pincode'])});\n"
+        sql = f"INSERT INTO orders (id, user_id, shipping_full_name, shipping_phone_number, shipping_address_line1, shipping_address_line2, shipping_city, shipping_state, shipping_country, shipping_pincode, status, order_date) VALUES ({o['id']}, {o['user_id']}, {escape_sql(o['shipping_full_name'])}, {escape_sql(o['shipping_phone_number'])}, {escape_sql(o['shipping_address_line1'])}, {escape_sql(o['shipping_address_line2'])}, {escape_sql(o['shipping_city'])}, {escape_sql(o['shipping_state'])}, {escape_sql(o['shipping_country'])}, {escape_sql(o['shipping_pincode'])}, {escape_sql(o.get('status', 'DELIVERED'))}, {escape_sql(o['order_date'])});\n"
         lines.append(sql)
         
     if orders:
