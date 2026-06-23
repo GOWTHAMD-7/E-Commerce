@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
@@ -28,6 +29,7 @@ public class EmailService {
         System.out.println("=================================================");
     }
 
+    @Async
     public void sendOtpEmail(String toEmail, String otp) {
         System.out.println("=================================================");
         System.out.println("VERIFICATION OTP FOR " + toEmail + ": " + otp);
@@ -42,6 +44,7 @@ public class EmailService {
         sendEmail(toEmail, "Verify your email - E-Commerce OTP Verification", body);
     }
 
+    @Async
     public void sendOrderConfirmationEmail(String toEmail, Order order) {
         StringBuilder itemsSummary = new StringBuilder();
         double total = 0;
@@ -73,6 +76,7 @@ public class EmailService {
         sendEmail(toEmail, "Order Confirmation - Order #" + order.getId(), body);
     }
 
+    @Async
     public void sendCancellationRequestEmail(String toEmail, Order order, String otp) {
         System.out.println("=================================================");
         System.out.println("CANCELLATION OTP FOR ORDER #" + order.getId() + " TO " + toEmail + ": " + otp);
@@ -87,6 +91,7 @@ public class EmailService {
         sendEmail(toEmail, "Order Cancellation Request - Order #" + order.getId(), body);
     }
 
+    @Async
     public void sendOrderCancelledEmail(String toEmail, Order order) {
         String body = "Your order #" + order.getId() + " has been successfully cancelled. The items have been returned to stock, and any processed payment will be refunded shortly.\n\n" +
                       "Best regards,\nE-Commerce Team";
@@ -94,6 +99,7 @@ public class EmailService {
         sendEmail(toEmail, "Order Cancelled - Order #" + order.getId(), body);
     }
 
+    @Async
     public void sendOrderDeliveredEmail(String toEmail, Order order) {
         String body = "Great news! Your order #" + order.getId() + " has been marked as delivered.\n\n" +
                       "Thank you for shopping with us! We hope to see you again soon.\n\n" +
@@ -102,6 +108,7 @@ public class EmailService {
         sendEmail(toEmail, "Order Delivered - Order #" + order.getId(), body);
     }
 
+    @Async
     public void sendPasswordResetOtpEmail(String toEmail, String otp) {
         System.out.println("=================================================");
         System.out.println("PASSWORD RESET OTP FOR " + toEmail + ": " + otp);
