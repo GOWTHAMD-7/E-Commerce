@@ -34,6 +34,20 @@ export function renderStockBadge(stock: number) {
       </span>
     );
   }
+  if (stock === 1) {
+    return (
+      <span className="inline-flex items-center text-[9px] font-extrabold px-2.5 py-1 rounded-full bg-amber-50/95 text-amber-700 border border-amber-200/50 shadow-sm backdrop-blur-sm tracking-wide uppercase animate-pulse">
+        Last item remaining
+      </span>
+    );
+  }
+  if (stock > 1 && stock <= 5) {
+    return (
+      <span className="inline-flex items-center text-[9px] font-extrabold px-2.5 py-1 rounded-full bg-amber-50/95 text-amber-700 border border-amber-200/50 shadow-sm backdrop-blur-sm tracking-wide uppercase animate-pulse">
+        Only {stock} items left
+      </span>
+    );
+  }
   if (stock <= 15) {
     return (
       <span className="inline-flex items-center text-[9px] font-extrabold px-2.5 py-1 rounded-full bg-amber-50/95 text-amber-700 border border-amber-200/50 shadow-sm backdrop-blur-sm tracking-wide uppercase">

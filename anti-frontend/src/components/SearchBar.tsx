@@ -96,7 +96,7 @@ export default function SearchBar({ searchQuery, setSearchQuery }: SearchBarProp
       <>
         {parts.map((part, index) => 
           part.toLowerCase() === query.toLowerCase() ? (
-            <strong key={index} className="text-indigo-600 font-extrabold">{part}</strong>
+            <strong key={index} className="text-[#111113] font-extrabold">{part}</strong>
           ) : (
             <span key={index}>{part}</span>
           )
@@ -108,13 +108,13 @@ export default function SearchBar({ searchQuery, setSearchQuery }: SearchBarProp
   return (
     <div className="relative w-full max-w-lg my-6 group" ref={dropdownRef}>
       <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-        <svg className="w-5 h-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" fill="none" viewBox="0 0 24 24" strokeWidth={2.2} stroke="currentColor">
+        <svg className="w-5 h-5 text-slate-400 group-focus-within:text-[#111113] transition-colors" fill="none" viewBox="0 0 24 24" strokeWidth={2.2} stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
         </svg>
       </div>
       <input
         type="text"
-        className="w-full pl-11 pr-10 py-3.5 text-sm text-slate-800 bg-white border border-slate-200 rounded-2xl shadow-sm focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all placeholder-slate-400 font-medium"
+        className="w-full pl-11 pr-10 py-3.5 text-sm text-slate-800 bg-white border border-slate-200 rounded-2xl shadow-sm focus:outline-none focus:border-[#111113] focus:ring-1 focus:ring-[#111113] transition-all placeholder-slate-400 font-medium"
         placeholder="Search products by name, category, brand..."
         value={searchQuery}
         onChange={(e) => {
@@ -137,7 +137,7 @@ export default function SearchBar({ searchQuery, setSearchQuery }: SearchBarProp
           aria-label="Clear search"
         >
           {loading ? (
-            <div className="w-4 h-4 border-2 border-slate-300 border-t-indigo-500 rounded-full animate-spin"></div>
+            <div className="w-4 h-4 border-2 border-slate-300 border-t-[#111113] rounded-full animate-spin"></div>
           ) : (
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -151,7 +151,7 @@ export default function SearchBar({ searchQuery, setSearchQuery }: SearchBarProp
         <div className="absolute z-50 w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden transform origin-top transition-all animate-in fade-in slide-in-from-top-2">
           {loading && suggestions.length === 0 ? (
             <div className="px-4 py-3 text-sm text-slate-500 text-center">
-              <div className="inline-block w-4 h-4 border-2 border-slate-300 border-t-indigo-500 rounded-full animate-spin mr-2 align-middle"></div>
+              <div className="inline-block w-4 h-4 border-2 border-slate-300 border-t-[#111113] rounded-full animate-spin mr-2 align-middle"></div>
               Searching...
             </div>
           ) : suggestions.length === 0 ? (
@@ -164,7 +164,7 @@ export default function SearchBar({ searchQuery, setSearchQuery }: SearchBarProp
                 <li 
                   key={index}
                   className={`px-4 py-3 cursor-pointer text-sm transition-colors border-b last:border-b-0 border-slate-100 flex items-center gap-2 ${
-                    index === activeIndex ? 'bg-indigo-50 text-indigo-700' : 'text-slate-700 hover:bg-slate-50'
+                    index === activeIndex ? 'bg-[#FAFAFA] text-[#111113]' : 'text-slate-700 hover:bg-slate-50'
                   }`}
                   onClick={() => handleSelectSuggestion(suggestion)}
                   onMouseEnter={() => setActiveIndex(index)}

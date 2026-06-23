@@ -537,6 +537,7 @@ export default function App() {
 
   const defaultAddress = addresses.find(addr => addr.isDefault) || addresses[0];
   const totalCartDistinctItems = cart.length;
+  const isCartValid = cart.every(item => item.product && item.product.stock > 0 && item.quantity <= item.product.stock);
 
   if (!auth) return null;
 
@@ -551,10 +552,10 @@ export default function App() {
 
   return (
     <div className="app-container">
-      <header className="sticky top-0 z-50 backdrop-blur-md bg-white/80 border-b border-slate-200/80 px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4 rounded-b-2xl shadow-sm transition-all duration-300">
+      <header className="sticky top-0 z-50 backdrop-blur-md bg-white/80 border-b border-[#E5E5E7] px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4 rounded-b-2xl shadow-sm transition-all duration-300">
         <Link to="/" style={{ textDecoration: 'none' }}>
-          <h1 className="text-2xl font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent tracking-tight hover:opacity-90 transition-opacity">
-            Aura Storefront
+          <h1 className="text-[2.2rem] font-bold tracking-[-0.03em] text-[#111113]" style={{ fontFamily: '"Playfair Display", "Cormorant Garamond", serif' }}>
+            Sellora
           </h1>
         </Link>
 
@@ -569,15 +570,15 @@ export default function App() {
                   setAddressEditing(null);
                   setShowAddressModal(true);
                 }} 
-                className="relative flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold text-slate-700 bg-slate-50/50 hover:bg-slate-100/80 border border-slate-200/60 rounded-xl transition-all duration-200 hover:shadow-sm group text-left"
+                className="relative flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold text-[#111113] bg-white hover:bg-[#FAFAFA] border border-[#6E6E73]/20 rounded-xl transition-all duration-200 group text-left"
               >
-                <svg className="w-5 h-5 text-slate-500 group-hover:text-indigo-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className="w-5 h-5 text-slate-500 group-hover:text-[#111113] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
                 <div className="flex flex-col">
-                  <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider leading-none">Deliver to</span>
-                  <span className="text-xs font-extrabold text-slate-700 leading-tight">
+                  <span className="text-[9px] text-[#6E6E73] font-bold uppercase tracking-wider leading-none">Deliver to</span>
+                  <span className="text-xs font-extrabold text-[#111113] leading-tight">
                     {defaultAddress ? `${defaultAddress.city} ${defaultAddress.pincode}` : 'Add Address'}
                   </span>
                 </div>
@@ -586,14 +587,14 @@ export default function App() {
               {/* Orders Button */}
               <button 
                 onClick={() => navigate('/orders')} 
-                className="relative flex items-center gap-2 px-3.5 py-2 text-sm font-semibold text-slate-700 bg-slate-50/50 hover:bg-slate-100/80 border border-slate-200/60 rounded-xl transition-all duration-200 hover:shadow-sm group"
+                className="relative flex items-center gap-2 px-3.5 py-2 text-sm font-semibold text-[#111113] bg-white hover:bg-[#FAFAFA] border border-[#6E6E73]/20 rounded-xl transition-all duration-200 group"
               >
-                <svg className="w-5 h-5 text-slate-500 group-hover:text-indigo-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className="w-5 h-5 text-slate-500 group-hover:text-[#111113] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                 </svg>
                 <span className="hidden sm:inline">Orders</span>
                 {orders.length > 0 && (
-                  <span className="flex h-4 min-w-4 px-1.5 items-center justify-center text-[9px] font-bold text-white bg-indigo-600 rounded-full ring-2 ring-white absolute -top-1.5 -right-1.5 animate-bounce">
+                  <span className="flex h-4 min-w-4 px-1.5 items-center justify-center text-[9px] font-bold text-white bg-[#111113] rounded-full ring-2 ring-white absolute -top-1.5 -right-1.5">
                     {orders.length}
                   </span>
                 )}
@@ -602,14 +603,14 @@ export default function App() {
               {/* Favorites Button */}
               <button 
                 onClick={() => navigate('/favorites')} 
-                className="relative flex items-center gap-2 px-3.5 py-2 text-sm font-semibold text-slate-700 bg-slate-50/50 hover:bg-slate-100/80 border border-slate-200/60 rounded-xl transition-all duration-200 hover:shadow-sm group"
+                className="relative flex items-center gap-2 px-3.5 py-2 text-sm font-semibold text-[#111113] bg-white hover:bg-[#FAFAFA] border border-[#6E6E73]/20 rounded-xl transition-all duration-200 group"
               >
                 <div className="relative">
                   <svg className="w-5 h-5 text-slate-500 group-hover:text-rose-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                   </svg>
                   {favorites.length > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 px-1 items-center justify-center text-[9px] font-bold text-white bg-rose-500 rounded-full ring-2 ring-white animate-pulse">
+                    <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 px-1 items-center justify-center text-[9px] font-bold text-white bg-[#111113] rounded-full ring-2 ring-white">
                       {favorites.length}
                     </span>
                   )}
@@ -620,14 +621,14 @@ export default function App() {
               {/* Cart Button */}
               <button 
                 onClick={() => navigate('/cart')} 
-                className="relative flex items-center gap-2 px-3.5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 group"
+                className="relative flex items-center gap-2 px-3.5 py-2 text-sm font-semibold text-white bg-[#111113] hover:bg-[#111113]/90 rounded-xl transition-all duration-200 group"
               >
                 <div className="relative">
                   <svg className="w-5 h-5 text-indigo-100 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                   </svg>
                   {totalCartDistinctItems > 0 && (
-                    <span className="absolute -top-2.5 -right-2 flex h-4 min-w-4 px-1 items-center justify-center text-[9px] font-extrabold text-indigo-600 bg-white rounded-full ring-2 ring-indigo-600">
+                    <span className="absolute -top-2.5 -right-2 flex h-4 min-w-4 px-1 items-center justify-center text-[9px] font-extrabold text-[#111113] bg-white rounded-full ring-2 ring-[#111113]">
                       {totalCartDistinctItems}
                     </span>
                   )}
@@ -652,7 +653,7 @@ export default function App() {
           {auth.user && auth.user.role === 'ADMIN' && (
             <button 
               onClick={() => navigate('/admin/dashboard')} 
-              className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-xl transition-all duration-200 hover:shadow-sm"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-[#111113] bg-white hover:bg-[#FAFAFA] border border-[#6E6E73]/20 rounded-xl transition-all duration-200"
             >
               <svg className="w-4 h-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -665,21 +666,21 @@ export default function App() {
             <div className="relative">
               <button
                 onClick={() => setShowProfileDropdown(prev => !prev)}
-                className="flex items-center justify-center w-10 h-10 rounded-full bg-indigo-600 text-white font-extrabold text-sm border-2 border-indigo-100 shadow-sm hover:shadow-md hover:scale-105 active:scale-95 transition-all focus:outline-none"
+                className="flex items-center justify-center w-10 h-10 rounded-full bg-[#111113] text-white font-extrabold text-sm border-2 border-[#111113]/10 transition-all focus:outline-none"
                 title="User Menu"
               >
                 {auth.user.email.substring(0, 2).toUpperCase()}
               </button>
               
               {showProfileDropdown && (
-                <div className="absolute right-0 mt-2.5 w-60 bg-white border border-slate-200/80 rounded-2xl shadow-xl py-3 z-50 text-left">
+                <div className="absolute right-0 mt-2.5 w-60 bg-white border border-[#E5E5E7] rounded-2xl shadow-xl py-3 z-50 text-left">
                   <div className="px-4 pb-2.5 border-b border-slate-100 flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs">
+                    <div className="w-9 h-9 rounded-full bg-[#FAFAFA] text-[#111113] border border-[#6E6E73]/10 flex items-center justify-center font-bold text-xs">
                       {auth.user.email.substring(0, 2).toUpperCase()}
                     </div>
                     <div className="flex flex-col min-w-0">
                       <span className="text-xs font-semibold text-slate-700 truncate">{auth.user.email}</span>
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">{auth.user.role}</span>
+                      <span className="text-[10px] text-[#6E6E73] font-bold uppercase tracking-wider mt-0.5">{auth.user.role}</span>
                     </div>
                   </div>
                   
@@ -720,13 +721,13 @@ export default function App() {
               <div className="flex items-center gap-3">
                 <button 
                   onClick={() => navigate('/login')} 
-                  className="px-4.5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                  className="px-4.5 py-2 text-sm font-semibold text-white bg-[#111113] hover:bg-[#111113]/90 rounded-xl transition-all duration-200"
                 >
                   Login
                 </button>
                 <button 
                   onClick={() => navigate('/register')} 
-                  className="px-4.5 py-2 text-sm font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl transition-all duration-200 hover:shadow-sm"
+                  className="px-4.5 py-2 text-sm font-semibold text-[#111113] bg-white hover:bg-[#FAFAFA] border border-[#6E6E73]/20 rounded-xl transition-all duration-200"
                 >
                   Register
                 </button>
@@ -744,30 +745,28 @@ export default function App() {
           element={
             <>
               {/* Hero Section */}
-              <section className="relative overflow-hidden bg-slate-900 text-white rounded-3xl my-8 px-8 py-16 sm:px-12 sm:py-20 shadow-xl border border-slate-800">
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-35"></div>
-                <div className="absolute -top-40 -right-40 w-96 h-96 bg-indigo-500 rounded-full blur-[120px] opacity-30"></div>
-                <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-purple-500 rounded-full blur-[120px] opacity-20"></div>
+              <section className="relative overflow-hidden bg-[#111113] text-white rounded-3xl my-8 px-8 py-16 sm:px-12 sm:py-24 shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-white/10">
+                <div className="absolute -top-40 -right-40 w-96 h-96 bg-white/5 rounded-full blur-[100px]"></div>
                 
                 <div className="relative max-w-2xl mx-auto text-center flex flex-col items-center gap-6">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/25 rounded-full uppercase tracking-wider">
+                  <span className="inline-flex items-center gap-1.5 px-4.5 py-1 text-[10px] font-bold text-white bg-white/10 border border-white/20 rounded-full uppercase tracking-widest">
                     ✨ Summer Collection 2026
                   </span>
-                  <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight bg-gradient-to-r from-white via-indigo-100 to-slate-200 bg-clip-text text-transparent">
+                  <h2 className="text-4xl sm:text-5xl font-bold tracking-tight leading-tight" style={{ fontFamily: '"Playfair Display", "Cormorant Garamond", serif' }}>
                     Discover Premium Goods
                   </h2>
-                  <p className="text-slate-400 text-sm sm:text-base max-w-xl leading-relaxed">
+                  <p className="text-[#E5E5E7]/70 text-sm sm:text-base max-w-xl leading-relaxed">
                     Explore our curated collection of high-quality products. Enjoy seamless interactions, real-time stock levels, and modern designs tailored for you.
                   </p>
-                  <div className="flex flex-wrap justify-center items-center gap-6 text-xs text-slate-400 font-medium pt-4 border-t border-slate-800/80 w-full mt-2">
+                  <div className="flex flex-wrap justify-center items-center gap-6 text-xs text-[#E5E5E7]/50 font-medium pt-6 border-t border-white/10 w-full mt-2 tracking-wider">
                     <span className="flex items-center gap-1.5">
                       🚀 Free Shipping
                     </span>
-                    <span className="hidden sm:inline text-slate-700">•</span>
+                    <span className="hidden sm:inline text-white/20">•</span>
                     <span className="flex items-center gap-1.5">
                       🔒 Secure Checkout
                     </span>
-                    <span className="hidden sm:inline text-slate-700">•</span>
+                    <span className="hidden sm:inline text-white/20">•</span>
                     <span className="flex items-center gap-1.5">
                       🤝 24/7 Support
                     </span>
@@ -816,20 +815,17 @@ export default function App() {
         <Route 
           path="/login" 
           element={
-            <div style={{ maxWidth: '440px', margin: '80px auto', padding: '32px', background: 'var(--color-bg-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-md)' }}>
-              <LoginForm initialRegister={false} onCancel={() => navigate('/')} />
-            </div>
+            <LoginForm initialRegister={false} onCancel={() => navigate('/')} />
           } 
         />
 
         <Route 
           path="/register" 
           element={
-            <div style={{ maxWidth: '440px', margin: '80px auto', padding: '32px', background: 'var(--color-bg-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-md)' }}>
-              <LoginForm initialRegister={true} onCancel={() => navigate('/')} />
-            </div>
+            <LoginForm initialRegister={true} onCancel={() => navigate('/')} />
           } 
         />
+
 
         <Route path="/unauthorized" element={<Unauthorized />} />
 
@@ -1089,9 +1085,18 @@ export default function App() {
                           <div style={{ display: 'flex', flexDirection: 'column' }}>
                             {cart.map((item) => (
                               <div key={item.id || item.product.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', borderBottom: '1px solid var(--color-border)' }} className="last:border-b-0">
-                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                                   <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>{item.product.name}</span>
                                   <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '2px' }}>${item.product.price.toFixed(2)} each</span>
+                                  {item.product.stock === 0 ? (
+                                    <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md mt-1 border border-rose-200/50 animate-pulse uppercase tracking-wide">
+                                      This product is no longer available.
+                                    </span>
+                                  ) : item.quantity > item.product.stock ? (
+                                    <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md mt-1 border border-amber-200/50 animate-pulse uppercase tracking-wide">
+                                      Only {item.product.stock} items available.
+                                    </span>
+                                  ) : null}
                                 </div>
                                 <div style={{ textAlign: 'right' }}>
                                   <span style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>Qty: {item.quantity}</span>
@@ -1125,13 +1130,13 @@ export default function App() {
                           <button 
                             onClick={() => selectedAddressId && handleCheckout(selectedAddressId)}
                             className="btn-primary" 
-                            disabled={checkoutLoading}
+                            disabled={checkoutLoading || !isCartValid}
                             style={{ 
                               width: '100%', 
                               padding: '12px 16px', 
                               fontWeight: 700, 
-                              opacity: checkoutLoading ? 0.7 : 1, 
-                              cursor: checkoutLoading ? 'not-allowed' : 'pointer' 
+                              opacity: (checkoutLoading || !isCartValid) ? 0.6 : 1, 
+                              cursor: (checkoutLoading || !isCartValid) ? 'not-allowed' : 'pointer' 
                             }}
                           >
                             {checkoutLoading ? 'Placing Order...' : 'Place Order'}
@@ -1161,9 +1166,18 @@ export default function App() {
                         <div className="cart-items-list" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                           {cart.map((item) => (
                             <div key={item.id || item.product.id} className="cart-item-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)' }}>
-                              <div className="cart-item-info" style={{ display: 'flex', flexDirection: 'column' }}>
+                              <div className="cart-item-info" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                                 <span className="cart-item-name" style={{ fontWeight: 600 }}>{item.product.name}</span>
                                 <span className="cart-item-price" style={{ color: 'var(--color-text-secondary)' }}>${(item.product.price * item.quantity).toFixed(2)}</span>
+                                {item.product.stock === 0 ? (
+                                  <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md mt-1 border border-rose-200/50 animate-pulse uppercase tracking-wide w-fit">
+                                    This product is no longer available.
+                                  </span>
+                                ) : item.quantity > item.product.stock ? (
+                                  <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md mt-1 border border-amber-200/50 animate-pulse uppercase tracking-wide w-fit">
+                                    Only {item.product.stock} items available.
+                                  </span>
+                                ) : null}
                               </div>
                               <div className="cart-item-actions" style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
                                 <div className="quantity-controller" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -1195,6 +1209,12 @@ export default function App() {
                             </div>
                           ))}
                         </div>
+                        {!isCartValid && (
+                          <div className="text-xs font-semibold text-rose-650 bg-rose-50/50 border border-rose-200/40 px-4 py-2.5 rounded-xl mt-4 text-left flex items-center gap-2">
+                            <span>⚠️</span>
+                            <span>Please update quantities or remove unavailable products before checking out.</span>
+                          </div>
+                        )}
                         <div className="cart-footer" style={{ marginTop: '24px', borderTop: '1px solid var(--color-border)', paddingTop: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div className="cart-total-row">
                             <span style={{ fontSize: '1.125rem', fontWeight: 600 }}>Total Price: </span>
@@ -1202,18 +1222,27 @@ export default function App() {
                               ${cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0).toFixed(2)}
                             </span>
                           </div>
-                          <button onClick={() => {
-                            const def = addresses.find(a => a.isDefault) || addresses[0];
-                            if (def && def.id) {
-                              setSelectedAddressId(def.id);
-                            }
-                            if (addresses.length === 0) {
-                              setShowNewAddressForm(true);
-                            } else {
-                              setShowNewAddressForm(false);
-                            }
-                            setCheckoutStep('address-select');
-                          }} className="btn-primary" style={{ padding: '12px 24px' }}>
+                          <button 
+                            onClick={() => {
+                              const def = addresses.find(a => a.isDefault) || addresses[0];
+                              if (def && def.id) {
+                                setSelectedAddressId(def.id);
+                              }
+                              if (addresses.length === 0) {
+                                setShowNewAddressForm(true);
+                              } else {
+                                setShowNewAddressForm(false);
+                              }
+                              setCheckoutStep('address-select');
+                            }} 
+                            className="btn-primary" 
+                            disabled={!isCartValid}
+                            style={{ 
+                              padding: '12px 24px',
+                              opacity: !isCartValid ? 0.6 : 1,
+                              cursor: !isCartValid ? 'not-allowed' : 'pointer'
+                            }}
+                          >
                             Proceed to Checkout
                           </button>
                         </div>
@@ -1466,6 +1495,26 @@ export default function App() {
                           </button>
                         </div>
                       </form>
+
+                      <div style={{ marginTop: '20px', fontSize: '0.875rem' }}>
+                        <span style={{ color: '#64748b' }}>Didn't receive the code? </span>
+                        <button
+                          type="button"
+                          disabled={cancelLoading}
+                          onClick={() => cancellingOrderId && handleRequestCancel(cancellingOrderId)}
+                          style={{
+                            border: 'none',
+                            background: 'none',
+                            color: cancelLoading ? '#94a3b8' : 'var(--color-primary)',
+                            fontWeight: 600,
+                            padding: '0 4px',
+                            cursor: cancelLoading ? 'not-allowed' : 'pointer',
+                            textDecoration: cancelLoading ? 'none' : 'underline'
+                          }}
+                        >
+                          {cancelLoading ? 'Resending...' : 'Resend Code'}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}

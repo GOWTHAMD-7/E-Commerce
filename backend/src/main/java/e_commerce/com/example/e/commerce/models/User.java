@@ -59,6 +59,13 @@ public class User {
     @Column(nullable = false, columnDefinition = "boolean default true")
     private boolean enabled = true;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "auth_provider", nullable = false, columnDefinition = "varchar(255) default 'LOCAL'")
+    private AuthProvider authProvider = AuthProvider.LOCAL;
+
+    @Column(name = "google_id", unique = true)
+    private String googleId;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
         name = "user_favorites",

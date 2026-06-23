@@ -70,7 +70,7 @@ function ProductRow({
   return (
     <section className="mb-12 relative group">
       <div className="flex items-center justify-between mb-4 px-2">
-        <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+        <h3 className="text-xl font-bold text-[#111113] flex items-center gap-2">
           <span>{icon}</span>
           <span>{title}</span>
         </h3>
@@ -79,20 +79,20 @@ function ProductRow({
           <div className="flex gap-2">
             <button 
               onClick={() => handleScroll('left')} 
-              className="p-2 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-650 hover:shadow-md transition-all active:scale-95 duration-200"
+              className="p-2 rounded-full border border-[#6E6E73]/20 bg-white hover:bg-[#FAFAFA] text-[#111113] transition-all active:scale-95 duration-200"
               aria-label={`Scroll ${title} Left`}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
             </button>
             <button 
               onClick={() => handleScroll('right')} 
-              className="p-2 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-650 hover:shadow-md transition-all active:scale-95 duration-200"
+              className="p-2 rounded-full border border-[#6E6E73]/20 bg-white hover:bg-[#FAFAFA] text-[#111113] transition-all active:scale-95 duration-200"
               aria-label={`Scroll ${title} Right`}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
               </svg>
             </button>
           </div>
@@ -261,19 +261,16 @@ export default function ProductList({
           />
 
           {/* 4. Placeholder: Recommended For You Section */}
-          <section className="mb-12 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-3xl p-6 sm:p-8 border border-indigo-100 relative overflow-hidden">
-            <div className="absolute right-0 top-0 translate-x-10 -translate-y-10 w-48 h-48 bg-indigo-200 rounded-full mix-blend-multiply filter blur-2xl opacity-40"></div>
-            <div className="absolute left-1/3 bottom-0 translate-y-12 w-64 h-64 bg-purple-200 rounded-full mix-blend-multiply filter blur-2xl opacity-40"></div>
-            
+          <section className="mb-12 bg-[#FFFFFF] rounded-3xl p-6 sm:p-8 border border-[#6E6E73]/20 relative overflow-hidden">
             <div className="relative z-10 max-w-2xl">
               <div className="flex items-center gap-2 mb-3">
-                <span className="text-2xl">✨</span>
-                <h3 className="text-xl font-bold text-slate-800">Recommended For You</h3>
+                <span className="text-xl">✨</span>
+                <h3 className="text-xl font-bold text-[#111113]">Recommended For You</h3>
               </div>
-              <p className="text-slate-650 text-sm sm:text-base mb-4 leading-relaxed">
+              <p className="text-[#6E6E73] text-sm sm:text-base mb-5 leading-relaxed">
                 Personalized recommendations are currently being tuned. Soon, our AI matching engine will showcase hand-picked products selected just for you based on your browsing preferences.
               </p>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800">
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-[10px] font-bold bg-[#111113] text-white uppercase tracking-wider">
                 🚀 Coming Soon
               </span>
             </div>
@@ -281,7 +278,7 @@ export default function ProductList({
 
           {/* 5. Featured Products Grid */}
           <section className="mb-12">
-            <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2 mb-6 px-2">
+            <h3 className="text-xl font-bold text-[#111113] flex items-center gap-2 mb-6 px-2">
               <span>🎯</span>
               <span>Featured Products</span>
             </h3>
@@ -316,7 +313,7 @@ export default function ProductList({
 
           {/* 6. Explore More Main Catalog Grid */}
           <section className="mt-12 pt-8 border-t border-slate-100">
-            <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2 mb-6 px-2">
+            <h3 className="text-xl font-bold text-[#111113] flex items-center gap-2 mb-6 px-2">
               <span>📂</span>
               <span>Explore More</span>
             </h3>
@@ -357,15 +354,15 @@ export default function ProductList({
                     <button
                       onClick={onLoadMore}
                       disabled={loadingMore}
-                      className={`px-8 py-3 rounded-2xl font-bold text-sm tracking-wide shadow-md transition-all duration-300 transform active:scale-98 flex items-center gap-3 ${
+                      className={`px-8 py-3 rounded-2xl font-bold text-sm tracking-wide transition-all duration-300 transform active:scale-98 flex items-center gap-3 ${
                         loadingMore
-                          ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed shadow-none'
-                          : 'bg-indigo-600 hover:bg-indigo-750 text-white hover:shadow-lg hover:-translate-y-0.5'
+                          ? 'bg-[#FAFAFA] text-[#6E6E73]/50 border border-[#6E6E73]/20 cursor-not-allowed shadow-none'
+                          : 'bg-[#111113] hover:bg-[#111113]/90 text-white'
                       }`}
                     >
                       {loadingMore ? (
                         <>
-                          <svg className="animate-spin h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24">
+                          <svg className="animate-spin h-5 w-5 text-[#111113]" fill="none" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                           </svg>

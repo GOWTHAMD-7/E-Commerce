@@ -79,7 +79,7 @@ public class OrderService {
         order.setOrderItems(new ArrayList<>());
 
         for (ProductSet cartItem : cart.getCart()) {
-            Product product = productRepo.findById(cartItem.getProduct().getId())
+            Product product = productRepo.findByIdForUpdate(cartItem.getProduct().getId())
                     .orElseThrow(() -> new RuntimeException("Product not found: " + cartItem.getProduct().getName()));
 
             if (product.getSeller() != null && product.getSeller().getId().equals(user.getId())) {
@@ -87,7 +87,7 @@ public class OrderService {
             }
 
             if (product.getStock() < cartItem.getQuantity()) {
-                throw new RuntimeException("Insufficient stock for product: " + product.getName());
+                throw new RuntimeException("Sorry, this product became unavailable while processing your order.");
             }
 
             // Decrement stock

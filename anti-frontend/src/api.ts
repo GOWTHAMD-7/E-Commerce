@@ -1,7 +1,7 @@
 import type { Product, AuthResponse, Address } from './types';
 
 // Spring Boot default port is 8080
-const API_BASE_URL = 'http://localhost:8080';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 export function sanitizeProduct(product: Product): Product {
     if (!product) return product;
@@ -125,6 +125,31 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
     return response.json(); // Parses the response body as JSON
 }
 
+export async function googleLogin(token: string): Promise<AuthResponse> {
+    const response = await fetch(`${API_BASE_URL}/auth/google`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ idToken: token }),
+    });
+
+    if (!response.ok) {
+        let errorMsg = `Failed to login with Google: ${response.statusText}`;
+        try {
+            const data = await response.json();
+            if (data && data.message) {
+                errorMsg = data.message;
+            }
+        } catch (e) {
+            // ignore
+        }
+        throw new Error(errorMsg);
+    }
+
+    return response.json();
+}
+
 
 export async function registerUser(name: string, email: string, password: string, role: string): Promise<AuthResponse> {
     const response = await fetch(`${API_BASE_URL}/auth/register`, {
@@ -187,6 +212,56 @@ export async function resendOtp(email: string): Promise<{ message: string }> {
 
     if (!response.ok) {
         let errorMsg = `Failed to resend code: ${response.statusText}`;
+        try {
+            const data = await response.json();
+            if (data && data.message) {
+                errorMsg = data.message;
+            }
+        } catch (e) {
+            // ignore
+        }
+        throw new Error(errorMsg);
+    }
+
+    return response.json();
+}
+
+export async function forgotPassword(email: string): Promise<{ message: string }> {
+    const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+    });
+
+    if (!response.ok) {
+        let errorMsg = `Failed to request password reset: ${response.statusText}`;
+        try {
+            const data = await response.json();
+            if (data && data.message) {
+                errorMsg = data.message;
+            }
+        } catch (e) {
+            // ignore
+        }
+        throw new Error(errorMsg);
+    }
+
+    return response.json();
+}
+
+export async function resetPassword(email: string, otp: string, newPassword: string): Promise<AuthResponse> {
+    const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, otp, newPassword }),
+    });
+
+    if (!response.ok) {
+        let errorMsg = `Failed to reset password: ${response.statusText}`;
         try {
             const data = await response.json();
             if (data && data.message) {

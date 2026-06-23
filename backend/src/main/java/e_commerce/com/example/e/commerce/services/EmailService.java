@@ -102,6 +102,20 @@ public class EmailService {
         sendEmail(toEmail, "Order Delivered - Order #" + order.getId(), body);
     }
 
+    public void sendPasswordResetOtpEmail(String toEmail, String otp) {
+        System.out.println("=================================================");
+        System.out.println("PASSWORD RESET OTP FOR " + toEmail + ": " + otp);
+        System.out.println("=================================================");
+
+        String body = "We received a request to reset your password.\n\n" +
+                      "Please enter the following OTP code to proceed with resetting your password:\n\n" +
+                      "Password Reset OTP: " + otp + "\n\n" +
+                      "This code is valid for 5 minutes. If you did not request this, please ignore this email and your password will remain unchanged.\n\n" +
+                      "Best regards,\nE-Commerce Team";
+
+        sendEmail(toEmail, "Reset your password - E-Commerce OTP Verification", body);
+    }
+
     private void sendEmail(String toEmail, String subject, String body) {
         System.out.println("=================================================");
         System.out.println("EMAIL SENT TO: " + toEmail);

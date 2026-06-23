@@ -5,7 +5,7 @@ import type { User } from '../types';
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (token: string, email: string) => void;
+  login: (token: string, email?: string) => void;
   logout: () => void;
   loading: boolean;
 }
@@ -69,18 +69,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, 1000);
   }, []);
 
-  const login = (newToken: string, email: string) => {
+  const login = (newToken: string, providedEmail?: string) => {
     setToken(newToken);
     const payload = decodeJwt(newToken);
-    const resolvedRole = getRoleFromEmailAndPayload(email, payload?.role);
+    const emailToUse = providedEmail || payload?.sub;
+    const resolvedRole = getRoleFromEmailAndPayload(emailToUse, payload?.role);
     const userId = payload?.userId;
     setUser({
       id: userId ? Number(userId) : undefined,
-      email,
+      email: emailToUse,
       role: resolvedRole
     });
     localStorage.setItem('jwt_token', newToken);
-    localStorage.setItem('user_email', email);
+    if (emailToUse) {
+      localStorage.setItem('user_email', emailToUse);
+    }
   };
 
   const logout = () => {

@@ -4,26 +4,27 @@
   --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 
   /* Color Palette */
-  --color-bg-base: #f8fafc;
+  --color-bg-base: #FAFAFA;
   --color-bg-surface: #ffffff;
-  --color-bg-surface-hover: #f1f5f9;
+  --color-bg-surface-hover: #FAFAFA;
   
-  --color-text-primary: #0f172a;
-  --color-text-secondary: #475569;
-  --color-text-muted: #94a3b8;
+  --color-text-primary: #111113;
+  --color-text-secondary: #6E6E73;
+  --color-text-muted: #8E8E93;
   
-  --color-primary: #4f46e5;
-  --color-primary-hover: #4338ca;
-  --color-primary-light: #e0e7ff;
+  --color-primary: #111113;
+  --color-primary-hover: #222225;
+  --color-primary-light: #F4F4F5;
   
-  --color-success: #10b981;
-  --color-success-light: #d1fae5;
-  --color-danger: #ef4444;
-  --color-danger-hover: #dc2626;
-  --color-danger-light: #fee2e2;
+  --color-success: #240046; /* luxury gold or deep color accent if success, but emerald/success is fine, let's keep emerald/rose or use sleek black/white success */
+  --color-success: #10B981;
+  --color-success-light: #E6FBF3;
+  --color-danger: #FF3B30;
+  --color-danger-hover: #E03B30;
+  --color-danger-light: #FFEBEA;
   
-  --color-border: #e2e8f0;
-  --color-border-focus: #818cf8;
+  --color-border: #E5E5E7;
+  --color-border-focus: #111113;
 
   /* Layout & Spacing */
   --radius-sm: 6px;

@@ -99,4 +99,53 @@ public class AuthController {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new MessageResponse(e.getMessage()));
 		}
 	}
+
+	@PostMapping("/forgot-password")
+	public ResponseEntity<MessageResponse> forgotPassword(@RequestBody Map<String, String> request) {
+		String email = request.get("email");
+		if (email == null) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new MessageResponse("Email is required"));
+		}
+		try {
+			userService.requestPasswordReset(email);
+			return ResponseEntity.ok(new MessageResponse("Password reset OTP code sent to your email."));
+		} catch (RuntimeException e) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new MessageResponse(e.getMessage()));
+		}
+	}
+
+	@PostMapping("/reset-password")
+	public ResponseEntity<AuthResponse> resetPassword(@RequestBody Map<String, String> request) {
+		String email = request.get("email");
+		String otp = request.get("otp");
+		String newPassword = request.get("newPassword");
+
+		if (email == null || otp == null || newPassword == null) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new AuthResponse(null, "Email, OTP, and newPassword are required"));
+		}
+
+		try {
+			userService.resetPassword(email, otp, newPassword);
+			User user = userService.findByEmail(email);
+			String token = jwtService.generateToken(user);
+			return ResponseEntity.ok(new AuthResponse(token, "Password reset successful"));
+		} catch (RuntimeException e) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new AuthResponse(null, e.getMessage()));
+		}
+	}
+
+	@PostMapping("/google")
+	public ResponseEntity<AuthResponse> googleLogin(@RequestBody java.util.Map<String, String> request) {
+		String idToken = request.get("idToken");
+		if (idToken == null || idToken.trim().isEmpty()) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new AuthResponse(null, "Google ID token is required"));
+		}
+		try {
+			User user = userService.loginOrRegisterGoogle(idToken);
+			String token = jwtService.generateToken(user);
+			return ResponseEntity.ok(new AuthResponse(token, "Login successful"));
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new AuthResponse(null, e.getMessage()));
+		}
+	}
 }
