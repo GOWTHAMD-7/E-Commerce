@@ -51,22 +51,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Read saved session on boot
   useEffect(() => {
-    setTimeout(() => {
-      const savedToken = localStorage.getItem('jwt_token');
-      const savedEmail = localStorage.getItem('user_email');
-      if (savedToken && savedEmail) {
-        setToken(savedToken);
-        const payload = decodeJwt(savedToken);
-        const resolvedRole = getRoleFromEmailAndPayload(savedEmail, payload?.role);
-        const userId = payload?.userId;
-        setUser({
-          id: userId ? Number(userId) : undefined,
-          email: savedEmail,
-          role: resolvedRole
-        });
-      }
-      setLoading(false);
-    }, 1000);
+    const savedToken = localStorage.getItem('jwt_token');
+    const savedEmail = localStorage.getItem('user_email');
+    if (savedToken && savedEmail) {
+      setToken(savedToken);
+      const payload = decodeJwt(savedToken);
+      const resolvedRole = getRoleFromEmailAndPayload(savedEmail, payload?.role);
+      const userId = payload?.userId;
+      setUser({
+        id: userId ? Number(userId) : undefined,
+        email: savedEmail,
+        role: resolvedRole
+      });
+    }
+    setLoading(false);
   }, []);
 
   const login = (newToken: string, providedEmail?: string) => {
