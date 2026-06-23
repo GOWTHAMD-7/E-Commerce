@@ -1,0 +1,20 @@
+target
+.idea
+.git
+.gitignore
+*.log
+
+# Environment variables (security: do not bake secrets into the image)
+.env
+.env.*
+
+# IDE files
+*.iml
+.vscode/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Documentation
+*.md
