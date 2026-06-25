@@ -137,6 +137,7 @@ public class EmailService {
 
         try {
             SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom("sellorashop.in@gmail.com"); // Using the verified sender email
             message.setTo(toEmail);
             message.setSubject(subject);
             message.setText(body);
