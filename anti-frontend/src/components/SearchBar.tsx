@@ -106,16 +106,16 @@ export default function SearchBar({ searchQuery, setSearchQuery }: SearchBarProp
   };
 
   return (
-    <div className="relative w-full max-w-lg my-6 group" ref={dropdownRef}>
+    <div className="relative w-full max-w-xl group" ref={dropdownRef}>
       <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-        <svg className="w-5 h-5 text-slate-400 group-focus-within:text-[#111113] transition-colors" fill="none" viewBox="0 0 24 24" strokeWidth={2.2} stroke="currentColor">
+        <svg className="w-5 h-5 text-slate-400 group-focus-within:text-[#2563EB] transition-colors" fill="none" viewBox="0 0 24 24" strokeWidth={2.2} stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
         </svg>
       </div>
       <input
         type="text"
-        className="w-full pl-11 pr-10 py-3.5 text-sm text-slate-800 bg-white border border-slate-200 rounded-2xl shadow-sm focus:outline-none focus:border-[#111113] focus:ring-1 focus:ring-[#111113] transition-all placeholder-slate-400 font-medium"
-        placeholder="Search products by name, category, brand..."
+        className="w-full pl-11 pr-10 py-2.5 text-sm text-slate-800 bg-white border border-[#E5E5E7] rounded-full shadow-sm focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] transition-all placeholder-slate-400 font-medium"
+        placeholder="Search products, brands, categories..."
         value={searchQuery}
         onChange={(e) => {
           setSearchQuery(e.target.value);

@@ -14,16 +14,17 @@ public class DatabaseIndexInitializer implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
         try {
-            // Create a weighted GIN index to speed up FTS queries
-            jdbcTemplate.execute(
-                "CREATE INDEX IF NOT EXISTS product_search_idx ON product USING gin(" +
-                "setweight(to_tsvector('english', coalesce(name, '')), 'A') || " +
-                "setweight(to_tsvector('english', coalesce(brand, '')), 'A') || " +
-                "setweight(to_tsvector('english', coalesce(category, '')), 'B') || " +
-                "setweight(to_tsvector('english', coalesce(description, '')), 'C')" +
-                ")"
-            );
-            System.out.println("PostgreSQL Full-Text Search GIN index checked/created successfully.");
+            /* 
+             * DDL execution moved directly to the database via pgAdmin/psql.
+             * It is best practice to manage schema changes directly or via tools like Flyway/Liquibase,
+             * rather than running CREATE INDEX on every Spring Boot startup, as it avoids lock queues.
+             *
+             * jdbcTemplate.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm");
+             * jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS product_search_idx ON product USING gin(...)");
+             * jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS product_trgm_idx ON product USING gin (name gin_trgm_ops)");
+             */
+
+            System.out.println("PostgreSQL Full-Text Search and Trigram indexes are managed directly in the database.");
         } catch (Exception e) {
             System.err.println("Failed to create GIN search index: " + e.getMessage());
         }

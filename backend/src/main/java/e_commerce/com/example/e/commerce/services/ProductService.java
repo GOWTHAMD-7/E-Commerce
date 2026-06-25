@@ -142,7 +142,7 @@ public class ProductService {
             return List.of();
         }
 
-        List<Product> results = productRepo.searchProductsFTS(formattedQuery);
+        List<Product> results = productRepo.searchProductsFTS(formattedQuery, query.trim());
         return results.stream()
             .map(this::convertToDTO)
             .toList();
@@ -152,6 +152,10 @@ public class ProductService {
         return productRepo.findAll().stream()
             .map(this::convertToDTO)
             .toList();
+    }
+
+    public List<String> getAllCategories() {
+        return productRepo.findDistinctCategories();
     }
 
     private int getRelevanceScore(Product product, String query) {

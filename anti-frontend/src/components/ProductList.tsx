@@ -2,14 +2,12 @@ import { useRef } from 'react';
 import type { Product, User } from '../types';
 import ProductCard from './ProductCard';
 import SkeletonCard from './SkeletonCard';
-import SearchBar from './SearchBar';
 
 interface ProductListProps {
   products: Product[];
   loading: boolean;
   error: string | null;
   searchQuery: string;
-  setSearchQuery: (query: string) => void;
   favorites: Product[];
   onToggleFavorite: (id: number) => void;
   onAddToCart: (product: Product, quantity: number) => void;
@@ -137,7 +135,6 @@ export default function ProductList({
   loading,
   error,
   searchQuery,
-  setSearchQuery,
   favorites,
   onToggleFavorite,
   onAddToCart,
@@ -164,8 +161,7 @@ export default function ProductList({
   return (
     <main style={{ marginTop: '32px' }}>
       
-      {/* Search Input */}
-      <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+
 
       {error && (
         <div className="form-error" style={{ marginBottom: '24px' }}>

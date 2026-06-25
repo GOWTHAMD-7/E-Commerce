@@ -24,6 +24,9 @@ public interface ProductRepo extends JpaRepository<Product, Long> {
     List<Product> findTop20ByOrderByRatingDesc();
     List<Product> findTop20ByOrderByReviewCountDesc();
 
+    @Query("SELECT DISTINCT p.category FROM Product p WHERE p.category IS NOT NULL AND p.category != ''")
+    List<String> findDistinctCategories();
+
     @Query(value = 
         "SELECT *, ts_rank(" +
         "  setweight(to_tsvector('english', coalesce(name, '')), 'A') || " +
@@ -31,7 +34,8 @@ public interface ProductRepo extends JpaRepository<Product, Long> {
         "  setweight(to_tsvector('english', coalesce(category, '')), 'B') || " +
         "  setweight(to_tsvector('english', coalesce(description, '')), 'C'), " +
         "  to_tsquery('english', :formattedQuery)" +
-        ") as rank " +
+        ") as rank, " +
+        "similarity(name, :rawQuery) as sim_rank " +
         "FROM product " +
         "WHERE ( " +
         "  setweight(to_tsvector('english', coalesce(name, '')), 'A') || " +
@@ -39,8 +43,9 @@ public interface ProductRepo extends JpaRepository<Product, Long> {
         "  setweight(to_tsvector('english', coalesce(category, '')), 'B') || " +
         "  setweight(to_tsvector('english', coalesce(description, '')), 'C') " +
         ") @@ to_tsquery('english', :formattedQuery) " +
-        "ORDER BY rank DESC", 
+        "OR name % :rawQuery " +
+        "ORDER BY rank DESC, sim_rank DESC", 
         nativeQuery = true)
-    List<Product> searchProductsFTS(@Param("formattedQuery") String formattedQuery);
+    List<Product> searchProductsFTS(@Param("formattedQuery") String formattedQuery, @Param("rawQuery") String rawQuery);
 }
 

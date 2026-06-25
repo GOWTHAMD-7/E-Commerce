@@ -84,6 +84,11 @@ public class ProductController {
         return ResponseEntity.ok(productService.getSuggestions(query));
     }
 
+    @GetMapping("/products/categories")
+    public ResponseEntity<List<String>> getCategories() {
+        return ResponseEntity.ok(productService.getAllCategories());
+    }
+
     @GetMapping("/products/{id}")
     public ResponseEntity<Product> getProductById(@PathVariable Long id) {
         return new ResponseEntity<Product>(productService.getProductById(id), HttpStatus.ACCEPTED);

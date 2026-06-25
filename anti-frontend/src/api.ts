@@ -64,6 +64,15 @@ export async function fetchProducts(page?: number, size?: number): Promise<Produ
     return Array.isArray(data) ? data.map(sanitizeProduct) : [];
 }
 
+export async function fetchCategories(): Promise<string[]> {
+    const response = await fetch(`${API_BASE_URL}/products/categories`);
+    if (!response.ok) {
+        throw new Error(`Failed to fetch categories: ${response.statusText}`);
+    }
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
+}
+
 export async function fetchFeaturedProducts(): Promise<Product[]> {
     const response = await fetch(`${API_BASE_URL}/products/featured`);
     if (!response.ok) {
