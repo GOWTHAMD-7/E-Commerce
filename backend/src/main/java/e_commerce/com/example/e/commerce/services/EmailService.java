@@ -1,46 +1,53 @@
 package e_commerce.com.example.e.commerce.services;
 
-import e_commerce.com.example.e.commerce.models.Order;
-import e_commerce.com.example.e.commerce.models.OrderItem;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import jakarta.annotation.PostConstruct;
+import e_commerce.com.example.e.commerce.models.Order;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class EmailService {
 
-    @Autowired(required = false)
-    private JavaMailSender mailSender;
+    @Value("${brevo.api.key}")
+    private String brevoApiKey;
 
-    @Value("${spring.mail.enabled:false}")
-    private boolean mailEnabled;
+    @Value("${brevo.sender.email}")
+    private String senderEmail;
+
+    @Value("${brevo.sender.name:E-Commerce Team}")
+    private String senderName;
+
+    private final RestTemplate restTemplate = new RestTemplate();
+    private static final String BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
 
     @PostConstruct
     public void init() {
         System.out.println("=================================================");
-        System.out.println("EmailService Initialized:");
-        System.out.println("  spring.mail.enabled (mailEnabled): " + mailEnabled);
-        System.out.println("  JavaMailSender bean exists: " + (mailSender != null));
+        System.out.println("EmailService Initialized (Brevo HTTP API):");
+        System.out.println("  Sender Email: " + senderEmail);
+        System.out.println("  API Key configured: " + (brevoApiKey != null && !brevoApiKey.isEmpty()));
         System.out.println("=================================================");
     }
 
     @Async
     public void sendOtpEmail(String toEmail, String otp) {
-        System.out.println("=================================================");
-        System.out.println("VERIFICATION OTP FOR " + toEmail + ": " + otp);
-        System.out.println("=================================================");
-        
         String body = "Thank you for registering on our E-Commerce marketplace!\n\n" +
                       "Please enter the following OTP code to verify your account:\n\n" +
                       "Verification OTP: " + otp + "\n\n" +
                       "This code is valid for 5 minutes. If you did not request this registration, please ignore this email.\n\n" +
                       "Best regards,\nE-Commerce Team";
-                      
         sendEmail(toEmail, "Verify your email - E-Commerce OTP Verification", body);
     }
 
@@ -48,15 +55,13 @@ public class EmailService {
     public void sendOrderConfirmationEmail(String toEmail, Order order) {
         StringBuilder itemsSummary = new StringBuilder();
         double total = 0;
-        if (order.getOrderItems() != null) {
-            for (OrderItem item : order.getOrderItems()) {
-                double itemTotal = item.getPurchasedPrice() * item.getQuantity();
-                total += itemTotal;
-                itemsSummary.append("- ").append(item.getProduct().getName())
-                            .append(" x").append(item.getQuantity())
-                            .append(" ($").append(String.format("%.2f", item.getPurchasedPrice())).append(" each) - $")
-                            .append(String.format("%.2f", itemTotal)).append("\n");
-            }
+        for (e_commerce.com.example.e.commerce.models.OrderItem item : order.getOrderItems()) {
+            itemsSummary.append("- ").append(item.getProduct().getName())
+                        .append(" x").append(item.getQuantity())
+                        .append(" ($").append(String.format("%.2f", item.getPurchasedPrice())).append(" each)")
+                        .append(" - $").append(String.format("%.2f", item.getPurchasedPrice() * item.getQuantity()))
+                        .append("\n");
+            total += item.getPurchasedPrice() * item.getQuantity();
         }
 
         String body = "Thank you for your purchase! Your order has been placed successfully.\n\n" +
@@ -68,8 +73,8 @@ public class EmailService {
                       "Total Price: $" + String.format("%.2f", total) + "\n\n" +
                       "Shipping Address:\n" +
                       "  Name: " + order.getShippingFullName() + "\n" +
-                      "  Address: " + order.getShippingAddressLine1() + (order.getShippingAddressLine2() != null ? ", " + order.getShippingAddressLine2() : "") + "\n" +
-                      "  City/State/Zip: " + order.getShippingCity() + ", " + order.getShippingState() + ", " + order.getShippingCountry() + " - " + order.getShippingPincode() + "\n\n" +
+                      "  Address: " + order.getShippingAddressLine1() + ", " + (order.getShippingAddressLine2() != null ? order.getShippingAddressLine2() : "") + "\n" +
+                      "  City/State/Zip: " + order.getShippingCity() + ", " + order.getShippingState() + " - " + order.getShippingPincode() + "\n\n" +
                       "If you wish to cancel this order, you can do so from your Placed Orders page within 5 minutes of purchase.\n\n" +
                       "Best regards,\nE-Commerce Team";
 
@@ -78,14 +83,10 @@ public class EmailService {
 
     @Async
     public void sendCancellationRequestEmail(String toEmail, Order order, String otp) {
-        System.out.println("=================================================");
-        System.out.println("CANCELLATION OTP FOR ORDER #" + order.getId() + " TO " + toEmail + ": " + otp);
-        System.out.println("=================================================");
-
         String body = "We received a request to cancel your order #" + order.getId() + ".\n\n" +
-                      "Please enter the following OTP code to confirm the cancellation:\n\n" +
+                      "Please enter the following OTP code to confirm your cancellation:\n\n" +
                       "Cancellation OTP: " + otp + "\n\n" +
-                      "This code is valid for 5 minutes. If you did not request this cancellation, please ignore this email.\n\n" +
+                      "This code is valid for 5 minutes. If you did not request this cancellation, please ignore this email and your order will proceed as normal.\n\n" +
                       "Best regards,\nE-Commerce Team";
 
         sendEmail(toEmail, "Order Cancellation Request - Order #" + order.getId(), body);
@@ -95,7 +96,6 @@ public class EmailService {
     public void sendOrderCancelledEmail(String toEmail, Order order) {
         String body = "Your order #" + order.getId() + " has been successfully cancelled. The items have been returned to stock, and any processed payment will be refunded shortly.\n\n" +
                       "Best regards,\nE-Commerce Team";
-
         sendEmail(toEmail, "Order Cancelled - Order #" + order.getId(), body);
     }
 
@@ -110,10 +110,6 @@ public class EmailService {
 
     @Async
     public void sendPasswordResetOtpEmail(String toEmail, String otp) {
-        System.out.println("=================================================");
-        System.out.println("PASSWORD RESET OTP FOR " + toEmail + ": " + otp);
-        System.out.println("=================================================");
-
         String body = "We received a request to reset your password.\n\n" +
                       "Please enter the following OTP code to proceed with resetting your password:\n\n" +
                       "Password Reset OTP: " + otp + "\n\n" +
@@ -125,26 +121,48 @@ public class EmailService {
 
     private void sendEmail(String toEmail, String subject, String body) {
         System.out.println("=================================================");
-        System.out.println("EMAIL SENT TO: " + toEmail);
-        System.out.println("SUBJECT: " + subject);
-        System.out.println("BODY:\n" + body);
-        System.out.println("=================================================");
+        System.out.println("PREPARING TO SEND EMAIL VIA BREVO API TO: " + toEmail);
         
-        if (!mailEnabled || mailSender == null) {
-            System.out.println("[Info] Email sending is disabled (local mode). Email logged to console above.");
-            return;
-        }
-
         try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom("sellorashop.in@gmail.com"); // Using the verified sender email
-            message.setTo(toEmail);
-            message.setSubject(subject);
-            message.setText(body);
-            mailSender.send(message);
-            System.out.println("Email sent successfully to: " + toEmail);
+            // 1. Set headers with Brevo API key
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("api-key", brevoApiKey);
+
+            // 2. Build the JSON body payload
+            Map<String, Object> sender = new HashMap<>();
+            sender.put("name", senderName);
+            sender.put("email", senderEmail);
+
+            Map<String, Object> to = new HashMap<>();
+            to.put("email", toEmail);
+
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("sender", sender);
+            requestBody.put("to", List.of(to));
+            requestBody.put("subject", subject);
+            requestBody.put("textContent", body);
+
+            HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestBody, headers);
+
+            // 3. Make the HTTP POST Request
+            ResponseEntity<String> response = restTemplate.exchange(
+                    BREVO_API_URL,
+                    HttpMethod.POST,
+                    requestEntity,
+                    String.class
+            );
+
+            if (response.getStatusCode().is2xxSuccessful()) {
+                System.out.println("Email sent successfully via HTTP to: " + toEmail);
+            } else {
+                System.err.println("[Error] Brevo API responded with status: " + response.getStatusCode());
+                System.err.println("Response body: " + response.getBody());
+            }
+
         } catch (Exception e) {
-            System.err.println("[Error] Failed to send email to " + toEmail + ": " + e.getMessage());
+            System.err.println("[Error] Failed to send email via Brevo HTTP API to " + toEmail + ": " + e.getMessage());
         }
+        System.out.println("=================================================");
     }
 }
