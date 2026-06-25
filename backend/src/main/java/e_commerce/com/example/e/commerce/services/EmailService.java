@@ -6,7 +6,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -41,7 +40,6 @@ public class EmailService {
         System.out.println("=================================================");
     }
 
-    @Async
     public void sendOtpEmail(String toEmail, String otp) {
         String body = "Thank you for registering on our E-Commerce marketplace!\n\n" +
                       "Please enter the following OTP code to verify your account:\n\n" +
@@ -51,7 +49,6 @@ public class EmailService {
         sendEmail(toEmail, "Verify your email - E-Commerce OTP Verification", body);
     }
 
-    @Async
     public void sendOrderConfirmationEmail(String toEmail, Order order) {
         StringBuilder itemsSummary = new StringBuilder();
         double total = 0;
@@ -81,7 +78,6 @@ public class EmailService {
         sendEmail(toEmail, "Order Confirmation - Order #" + order.getId(), body);
     }
 
-    @Async
     public void sendCancellationRequestEmail(String toEmail, Order order, String otp) {
         String body = "We received a request to cancel your order #" + order.getId() + ".\n\n" +
                       "Please enter the following OTP code to confirm your cancellation:\n\n" +
@@ -92,14 +88,12 @@ public class EmailService {
         sendEmail(toEmail, "Order Cancellation Request - Order #" + order.getId(), body);
     }
 
-    @Async
     public void sendOrderCancelledEmail(String toEmail, Order order) {
         String body = "Your order #" + order.getId() + " has been successfully cancelled. The items have been returned to stock, and any processed payment will be refunded shortly.\n\n" +
                       "Best regards,\nE-Commerce Team";
         sendEmail(toEmail, "Order Cancelled - Order #" + order.getId(), body);
     }
 
-    @Async
     public void sendOrderDeliveredEmail(String toEmail, Order order) {
         String body = "Great news! Your order #" + order.getId() + " has been marked as delivered.\n\n" +
                       "Thank you for shopping with us! We hope to see you again soon.\n\n" +
@@ -108,7 +102,6 @@ public class EmailService {
         sendEmail(toEmail, "Order Delivered - Order #" + order.getId(), body);
     }
 
-    @Async
     public void sendPasswordResetOtpEmail(String toEmail, String otp) {
         String body = "We received a request to reset your password.\n\n" +
                       "Please enter the following OTP code to proceed with resetting your password:\n\n" +
@@ -158,10 +151,22 @@ public class EmailService {
             } else {
                 System.err.println("[Error] Brevo API responded with status: " + response.getStatusCode());
                 System.err.println("Response body: " + response.getBody());
+                throw new RuntimeException("Failed to send email. Status: " + response.getStatusCode());
             }
 
+        } catch (org.springframework.web.client.HttpStatusCodeException e) {
+            String responseBody = e.getResponseBodyAsString();
+            System.err.println("[Error] Brevo API HTTP Error: " + e.getStatusCode());
+            System.err.println("Response body: " + responseBody);
+            
+            if (responseBody.contains("quota") || e.getStatusCode().value() == 402 || e.getStatusCode().value() == 403 || e.getStatusCode().value() == 429) {
+                throw new RuntimeException("Sorry! Today's mail limit is over. Please try again tomorrow.");
+            } else {
+                throw new RuntimeException("Failed to send email. Please check your email configuration.");
+            }
         } catch (Exception e) {
             System.err.println("[Error] Failed to send email via Brevo HTTP API to " + toEmail + ": " + e.getMessage());
+            throw new RuntimeException("Failed to send email due to an unexpected error.");
         }
         System.out.println("=================================================");
     }
