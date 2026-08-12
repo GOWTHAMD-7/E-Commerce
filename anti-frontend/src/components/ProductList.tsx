@@ -4,10 +4,6 @@ import ProductCard from './ProductCard';
 import SkeletonCard from './SkeletonCard';
 import { fetchProductsByCategory, fetchFeaturedProducts } from '../api';
 import { 
-  Sparkles, 
-  Star, 
-  Eye, 
-  Target, 
   ShoppingBag, 
   Laptop, 
   Shirt, 
@@ -162,7 +158,7 @@ interface CategoryProductRowProps {
 
 function CategoryProductRow({
   category,
-  icon,
+  icon: _icon,
   isFavorited,
   onToggleFavorite,
   onAddToCart,
@@ -918,13 +914,13 @@ export default function ProductList({
   currentUser,
   onUpdate,
   onDelete,
-  hasMore,
-  onLoadMore,
-  loadingMore,
+  hasMore: _hasMore,
+  onLoadMore: _onLoadMore,
+  loadingMore: _loadingMore,
   featuredProducts = [],
   newArrivals = [],
   topRated = [],
-  mostReviewed = [],
+  mostReviewed: _mostReviewed = [],
   mostViewed = [],
   sectionsLoading = false,
   categories = [],

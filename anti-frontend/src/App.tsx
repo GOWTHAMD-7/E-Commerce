@@ -40,7 +40,6 @@ import SellerDashboard from './components/SellerDashboard';
 import AdminDashboard from './components/AdminDashboard';
 import SearchBar from './components/SearchBar';
 import { 
-  Sparkles, 
   Flame, 
   ShoppingBag, 
   Laptop, 

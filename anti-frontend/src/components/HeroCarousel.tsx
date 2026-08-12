@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Sparkles, ArrowRight, Zap, ChevronLeft, ChevronRight, ShieldCheck, Truck, Headphones, Star, ShoppingBag, Flame, Tag } from 'lucide-react';
+import { ArrowRight, Zap, ChevronLeft, ChevronRight, ShieldCheck, Truck, Headphones, Flame, Tag } from 'lucide-react';
 import type { Product } from '../types';
 
 interface HeroCarouselProps {

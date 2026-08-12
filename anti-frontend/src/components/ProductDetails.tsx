@@ -157,8 +157,6 @@ export default function ProductDetails({
 
   const hasStock = product.stock > 0;
 
-  const primaryImg = product.mainImage || product.imageUrl || '';
-
 
 
   const highlights = [
