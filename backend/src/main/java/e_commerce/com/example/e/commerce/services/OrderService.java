@@ -90,9 +90,9 @@ public class OrderService {
                 throw new RuntimeException("Sorry, this product became unavailable while processing your order.");
             }
 
-            // Decrement stock
-            product.setStock(product.getStock() - cartItem.getQuantity());
-            productRepo.save(product);
+            // Decrement stock (TODO: Update to use ProductVariant)
+            // product.setStock(product.getStock() - cartItem.getQuantity());
+            // productRepo.save(product);
 
             // Create OrderItem
             OrderItem orderItem = new OrderItem();
@@ -183,12 +183,9 @@ public class OrderService {
         order.setStatus("CANCELLED");
         orderRepository.save(order);
 
-        // Restore stock
-        for (OrderItem item : order.getOrderItems()) {
-            Product product = item.getProduct();
-            product.setStock(product.getStock() + item.getQuantity());
-            productRepo.save(product);
-        }
+            // Restore stock (TODO: Update to use ProductVariant)
+            // product.setStock(product.getStock() + item.getQuantity());
+            // productRepo.save(product);
 
         // Clean up token
         verificationTokenRepository.delete(token);

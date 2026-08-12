@@ -1,63 +1,96 @@
 package e_commerce.com.example.e.commerce.models;
 
-
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.ElementCollection;
-import jakarta.persistence.Column;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.NonNull;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
-import java.util.List;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.List;
 
 @Entity
+@Table(name = "product")
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Product {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NonNull
-    @Column(length = 500)
+    @Column(nullable = false, length = 500)
     private String name;
-    
+
     @Column(columnDefinition = "TEXT")
     private String description;
-    
+
+    @Column(nullable = false)
     private String category;
+
+    private String subCategory;
+
     private String brand;
-    
-    @NonNull
+
+    @Column(nullable = false)
     private Double price;
-    @NonNull
-    private Integer stock;
-    
+
+    private Double discountedPrice;
+
+    private Integer discountPercent;
+
+    private String fit;
+
+    private String material;
+
+    private String careInstructions;
+
     @ElementCollection
-    @Column(length = 1000)
+    @CollectionTable(name = "product_images", joinColumns = @JoinColumn(name = "product_id"))
+    @Column(name = "image_url", length = 1000)
+    @Builder.Default
     private List<String> images = new ArrayList<>();
-
-
 
     @Column(columnDefinition = "TEXT")
     private String mainImage;
+
+    @Builder.Default
     private Double rating = 0.0;
+    @Builder.Default
     private Integer reviewCount = 0;
 
+    @Builder.Default
+    private Long viewCount = 0L;
+
+    @Builder.Default
+    private Integer stock = 0;
+
+    @Builder.Default
+    private Boolean isActive = true;
+    @Builder.Default
+    private Boolean isFeatured = false;
+    @Builder.Default
+    private Boolean isNewArrival = false;
+
+    @CreationTimestamp
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    private LocalDateTime updatedAt;
+
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
     private List<Review> reviews = new ArrayList<>();
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "seller_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "password", "favorites", "addresses"})
     private User seller;
 }

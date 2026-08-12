@@ -64,6 +64,72 @@ export async function fetchProducts(page?: number, size?: number): Promise<Produ
     return Array.isArray(data) ? data.map(sanitizeProduct) : [];
 }
 
+export async function fetchProductsByCategory(category: string, page: number = 0, size: number = 10): Promise<Product[]> {
+    if (!category || category.trim() === '') return [];
+    
+    // 1. Try dedicated category pagination endpoint first
+    try {
+        const params = new URLSearchParams({
+            name: category,
+            category: category,
+            page: page.toString(),
+            size: size.toString()
+        });
+        const response = await fetch(`${API_BASE_URL}/products/category?${params.toString()}`);
+        if (response.ok) {
+            const data = await response.json();
+            if (Array.isArray(data) && data.length > 0) {
+                return data.map(sanitizeProduct);
+            }
+        }
+    } catch (err) {
+        console.warn('Dedicated category endpoint error:', err);
+    }
+
+    // 2. Try category query param endpoint /products?category=...
+    try {
+        const params = new URLSearchParams({
+            category,
+            page: page.toString(),
+            size: size.toString()
+        });
+        const response = await fetch(`${API_BASE_URL}/products?${params.toString()}`);
+        if (response.ok) {
+            const data = await response.json();
+            if (Array.isArray(data) && data.length > 0) {
+                // If backend returned generic un-filtered page 0 items, check if category matches
+                const filtered = data.filter(p => 
+                    p.category?.toLowerCase().includes(category.toLowerCase()) || 
+                    category.toLowerCase().includes(p.category?.toLowerCase() || '')
+                );
+                if (filtered.length > 0) {
+                    return filtered.map(sanitizeProduct);
+                }
+            }
+        }
+    } catch (err) {
+        console.warn('Category param endpoint error:', err);
+    }
+
+    // 3. Fallback: Use search query endpoint (same endpoint used by top bar), sort by viewCount DESC, and slice 10 items
+    try {
+        const searchRes = await fetch(`${API_BASE_URL}/products?query=${encodeURIComponent(category)}`);
+        if (searchRes.ok) {
+            const data = await searchRes.json();
+            if (Array.isArray(data)) {
+                const sorted = [...data].sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
+                const start = page * size;
+                const pageSlice = sorted.slice(start, start + size);
+                return pageSlice.map(sanitizeProduct);
+            }
+        }
+    } catch (err) {
+        console.error(`Failed to fetch category products fallback for ${category}:`, err);
+    }
+
+    return [];
+}
+
 export async function fetchCategories(): Promise<string[]> {
     const response = await fetch(`${API_BASE_URL}/products/categories`);
     if (!response.ok) {
@@ -73,13 +139,49 @@ export async function fetchCategories(): Promise<string[]> {
     return Array.isArray(data) ? data : [];
 }
 
-export async function fetchFeaturedProducts(): Promise<Product[]> {
-    const response = await fetch(`${API_BASE_URL}/products/featured`);
-    if (!response.ok) {
-        throw new Error(`Failed to fetch featured products: ${response.statusText}`);
+export async function fetchFeaturedProducts(page: number = 0, size: number = 12): Promise<Product[]> {
+    let result: Product[] = [];
+
+    try {
+        const params = new URLSearchParams({
+            page: page.toString(),
+            size: size.toString()
+        });
+        const response = await fetch(`${API_BASE_URL}/products/featured?${params.toString()}`);
+        if (response.ok) {
+            const data = await response.json();
+            if (Array.isArray(data) && data.length > 0) {
+                result = data.map(sanitizeProduct);
+            }
+        }
+    } catch (err) {
+        console.warn('Backend /products/featured param fetch warning:', err);
     }
-    const data = await response.json();
-    return Array.isArray(data) ? data.map(sanitizeProduct) : [];
+
+    // Fallback: If returned items are fewer than requested size (e.g. 10 items instead of 12), fill from general catalog
+    if (result.length < size) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/products?page=${page}&size=${size}`);
+            if (response.ok) {
+                const data = await response.json();
+                if (Array.isArray(data) && data.length > 0) {
+                    const fallbackItems = data.map(sanitizeProduct);
+                    const existingIds = new Set(result.map(p => p.id));
+                    for (const item of fallbackItems) {
+                        if (result.length >= size) break;
+                        if (!existingIds.has(item.id)) {
+                            result.push(item);
+                            existingIds.add(item.id);
+                        }
+                    }
+                }
+            }
+        } catch (err) {
+            console.warn('Fallback general products fetch warning:', err);
+        }
+    }
+
+    return result.slice(0, size);
 }
 
 export async function fetchNewArrivals(): Promise<Product[]> {
@@ -88,7 +190,7 @@ export async function fetchNewArrivals(): Promise<Product[]> {
         throw new Error(`Failed to fetch new arrivals: ${response.statusText}`);
     }
     const data = await response.json();
-    return Array.isArray(data) ? data.map(sanitizeProduct) : [];
+    return Array.isArray(data) ? data.slice(0, 15).map(sanitizeProduct) : [];
 }
 
 export async function fetchTopRatedProducts(): Promise<Product[]> {
@@ -97,7 +199,7 @@ export async function fetchTopRatedProducts(): Promise<Product[]> {
         throw new Error(`Failed to fetch top rated products: ${response.statusText}`);
     }
     const data = await response.json();
-    return Array.isArray(data) ? data.map(sanitizeProduct) : [];
+    return Array.isArray(data) ? data.slice(0, 15).map(sanitizeProduct) : [];
 }
 
 export async function fetchMostReviewedProducts(): Promise<Product[]> {
@@ -106,7 +208,16 @@ export async function fetchMostReviewedProducts(): Promise<Product[]> {
         throw new Error(`Failed to fetch most reviewed products: ${response.statusText}`);
     }
     const data = await response.json();
-    return Array.isArray(data) ? data.map(sanitizeProduct) : [];
+    return Array.isArray(data) ? data.slice(0, 15).map(sanitizeProduct) : [];
+}
+
+export async function fetchMostViewedProducts(): Promise<Product[]> {
+    const response = await fetch(`${API_BASE_URL}/products/most-viewed`);
+    if (!response.ok) {
+        throw new Error(`Failed to fetch most viewed products: ${response.statusText}`);
+    }
+    const data = await response.json();
+    return Array.isArray(data) ? data.slice(0, 15).map(sanitizeProduct) : [];
 }
 
 export async function loginUser(email: string, password: string): Promise<AuthResponse> {
@@ -745,4 +856,42 @@ export async function confirmCancelOrder(orderId: number, otp: string): Promise<
     }
 
     return response.text();
+}
+
+export async function fetchProductReviews(productId: number): Promise<any[]> {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/reviews/products/${productId}`);
+        if (!response.ok) return [];
+        return await response.json();
+    } catch (e) {
+        return [];
+    }
+}
+
+export async function createProductReview(productId: number, rating: number, comment: string): Promise<any> {
+    const token = localStorage.getItem('jwt_token');
+    if (!token) throw new Error('Please login to submit a review.');
+
+    const response = await fetch(`${API_BASE_URL}/api/reviews/products/${productId}`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ rating, comment })
+    });
+
+    if (!response.ok) {
+        let errorMsg = 'Failed to submit review.';
+        try {
+            const errData = await response.json();
+            if (errData && errData.message) errorMsg = errData.message;
+        } catch (e) {
+            const txt = await response.text();
+            if (txt) errorMsg = txt;
+        }
+        throw new Error(errorMsg);
+    }
+
+    return response.json();
 }

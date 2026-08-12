@@ -46,15 +46,13 @@ public class ReviewService {
         }
 
         boolean hasPurchased = orderRepository.existsByUserIdAndOrderItemsProductId(user.getId(), productId);
-        if (!hasPurchased) {
-            throw new RuntimeException("You must purchase this product before writing a review");
-        }
 
         Review review = new Review();
         review.setUser(user);
         review.setProduct(product);
         review.setRating(rating);
         review.setComment(comment);
+        review.setVerifiedPurchase(hasPurchased);
 
         Review savedReview = reviewRepository.save(review);
 

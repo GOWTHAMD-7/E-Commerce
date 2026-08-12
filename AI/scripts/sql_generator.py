@@ -1,4 +1,5 @@
 import os
+import random
 
 def escape_sql(val):
     if val is None or str(val).lower() == 'nan':
@@ -26,12 +27,13 @@ def generate_products_sql(products, output_dir):
     lines_img = ["-- PRODUCT IMAGES\n"]
     
     for p in products:
-        sql = f"INSERT INTO product (id, name, description, category, brand, price, stock, main_image, rating, review_count, seller_id) VALUES ({p['id']}, {escape_sql(p['name'])}, {escape_sql(p['description'])}, {escape_sql(p['category'])}, {escape_sql(p['brand'])}, {p['price']}, {p['stock']}, {escape_sql(p['mainImage'])}, {p['rating']}, {p['reviewCount']}, {p['seller_id']});\n"
+        view_cnt = p.get('viewCount', p.get('view_count', random.randint(15, 650)))
+        sql = f"INSERT INTO product (id, name, description, category, brand, price, stock, main_image, rating, review_count, view_count, seller_id) VALUES ({p['id']}, {escape_sql(p['name'])}, {escape_sql(p['description'])}, {escape_sql(p['category'])}, {escape_sql(p['brand'])}, {p['price']}, {p['stock']}, {escape_sql(p['mainImage'])}, {p['rating']}, {p['reviewCount']}, {view_cnt}, {p['seller_id']});\n"
         lines_prod.append(sql)
         
         for img in p['images']:
             if img.strip():
-                lines_img.append(f"INSERT INTO product_images (product_id, images) VALUES ({p['id']}, {escape_sql(img)});\n")
+                lines_img.append(f"INSERT INTO product_images (product_id, image_url) VALUES ({p['id']}, {escape_sql(img)});\n")
             
     if products:
         max_id = max(p['id'] for p in products)

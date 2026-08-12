@@ -106,7 +106,8 @@ INSERT INTO app_user (id, name, email, password, role) VALUES (104, 'Hannah Varg
 INSERT INTO app_user (id, name, email, password, role) VALUES (105, 'Jack Carter', 'customer54@gmail.com', '$2b$10$Gl3U4bjwZMJVHOCUKT8PZen87Ype8yq3k5WlWxv52lN6iYxgKTpN2', 'CUSTOMER');
 INSERT INTO app_user (id, name, email, password, role) VALUES (106, 'Danielle Murphy', 'customer55@gmail.com', '$2b$10$Gl3U4bjwZMJVHOCUKT8PZen87Ype8yq3k5WlWxv52lN6iYxgKTpN2', 'CUSTOMER');
 INSERT INTO app_user (id, name, email, password, role) VALUES (107, 'Martin Wilson', 'customer56@gmail.com', '$2b$10$Gl3U4bjwZMJVHOCUKT8PZen87Ype8yq3k5WlWxv52lN6iYxgKTpN2', 'CUSTOMER');
-INSERT INTO app_user (id, name, email, password, role) VALUES (108, 'David Morales', 'customer57@gmail.com', '$2b$10$Gl3U4bjwZMJVHOCUKT8PZen87Ype8yq3k5WlWxv52lN6iYxgKTpN2', 'CUSTOMER');
+INSERT INTO app_user (id, name,
+` email, password, role) VALUES (108, 'David Morales', 'customer57@gmail.com', '$2b$10$Gl3U4bjwZMJVHOCUKT8PZen87Ype8yq3k5WlWxv52lN6iYxgKTpN2', 'CUSTOMER');
 INSERT INTO app_user (id, name, email, password, role) VALUES (109, 'Christine Adams', 'customer58@gmail.com', '$2b$10$Gl3U4bjwZMJVHOCUKT8PZen87Ype8yq3k5WlWxv52lN6iYxgKTpN2', 'CUSTOMER');
 INSERT INTO app_user (id, name, email, password, role) VALUES (110, 'Craig Lewis', 'customer59@gmail.com', '$2b$10$Gl3U4bjwZMJVHOCUKT8PZen87Ype8yq3k5WlWxv52lN6iYxgKTpN2', 'CUSTOMER');
 INSERT INTO app_user (id, name, email, password, role) VALUES (111, 'Christopher Patterson', 'customer60@gmail.com', '$2b$10$Gl3U4bjwZMJVHOCUKT8PZen87Ype8yq3k5WlWxv52lN6iYxgKTpN2', 'CUSTOMER');

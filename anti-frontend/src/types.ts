@@ -71,3 +71,12 @@ export interface Address {
   createdAt?: string;
   updatedAt?: string;
 }
+
+export interface Review {
+  id?: number;
+  user?: User;
+  rating: number;
+  comment: string;
+  isVerifiedPurchase?: boolean;
+  createdAt?: string;
+}

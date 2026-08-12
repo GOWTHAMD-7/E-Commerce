@@ -5,6 +5,9 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 5174
+    port: 5174,
+    headers: {
+      "Cross-Origin-Opener-Policy": "same-origin-allow-popups"
+    }
   } 
 })

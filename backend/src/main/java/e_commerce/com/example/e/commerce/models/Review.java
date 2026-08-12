@@ -1,6 +1,7 @@
 package e_commerce.com.example.e.commerce.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -23,6 +24,7 @@ import java.time.LocalDateTime;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Review {
 
     @Id
@@ -38,12 +40,15 @@ public class Review {
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "password", "favorites", "addresses"})
     private User user;
 
     @NonNull
     private Integer rating; // 1-5
 
     private String comment;
+
+    private boolean isVerifiedPurchase = false;
 
     @CreationTimestamp
     private LocalDateTime createdAt;

@@ -1,9 +1,10 @@
 import { useEffect, useState, useContext } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import type { Product } from '../types';
-import { fetchProductById } from '../api';
+import { fetchProductById, fetchProductReviews, createProductReview } from '../api';
 import { renderStockBadge } from './ProductCard';
 import ProductCard from './ProductCard';
+import { ShoppingBag, Zap, Heart, Star, CheckCircle, MessageSquare } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 
 interface ProductDetailsProps {
@@ -32,6 +33,14 @@ export default function ProductDetails({
   const [imageError, setImageError] = useState(false);
   const [buying, setBuying] = useState(false);
 
+  // Review states
+  const [liveReviews, setLiveReviews] = useState<any[]>([]);
+  const [newRating, setNewRating] = useState<number>(5);
+  const [newComment, setNewComment] = useState<string>('');
+  const [submittingReview, setSubmittingReview] = useState<boolean>(false);
+  const [reviewSuccess, setReviewSuccess] = useState<string | null>(null);
+  const [reviewError, setReviewError] = useState<string | null>(null);
+
   // Redesign states
   const [activeImage, setActiveImage] = useState<string>('');
   const [zoomStyle, setZoomStyle] = useState({ transformOrigin: 'center' });
@@ -55,7 +64,32 @@ export default function ProductDetails({
         setError(err.message || 'Failed to fetch product details.');
         setLoading(false);
       });
+
+    fetchProductReviews(Number(id))
+      .then((revs) => setLiveReviews(revs))
+      .catch(() => setLiveReviews([]));
   }, [id]);
+
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!id || !newComment.trim()) return;
+    setSubmittingReview(true);
+    setReviewError(null);
+    setReviewSuccess(null);
+
+    try {
+      const created = await createProductReview(Number(id), newRating, newComment.trim());
+      setLiveReviews(prev => [created, ...prev]);
+      setReviewSuccess('Review submitted successfully!');
+      setNewComment('');
+      setNewRating(5);
+      fetchProductById(Number(id)).then(data => setProduct(data)).catch(() => {});
+    } catch (err: any) {
+      setReviewError(err.message || 'Failed to submit review.');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
 
   const handleBuyNow = async () => {
     if (!product || product.id === undefined) return;
@@ -124,21 +158,6 @@ export default function ProductDetails({
   const hasStock = product.stock > 0;
 
   const primaryImg = product.mainImage || product.imageUrl || '';
-  const thumbnails = [];
-  if (primaryImg) {
-    thumbnails.push({ id: 0, url: primaryImg, label: 'Main View' });
-  }
-  if (product.images && product.images.length > 0) {
-    product.images.forEach((img, idx) => {
-      thumbnails.push({ id: idx + 1, url: img, label: `Angle ${idx + 2}` });
-    });
-  } else if (primaryImg) {
-    thumbnails.push(
-      { id: 1, url: primaryImg, label: 'Secondary View', style: { filter: 'brightness(1.05) contrast(1.02)' } },
-      { id: 2, url: primaryImg, label: 'Cropped Detail', style: { transform: 'scale(1.15) translate(5px, 5px)' } },
-      { id: 3, url: primaryImg, label: 'Macro Spec', style: { filter: 'contrast(1.08) saturate(1.05)' } }
-    );
-  }
 
 
 
@@ -194,60 +213,27 @@ export default function ProductDetails({
     <div className="max-w-7xl mx-auto px-1 py-4" style={{ marginTop: '24px' }}>
       
       {/* Navigation Row */}
-      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+      <div className="mb-5">
         {/* Back Arrow Button */}
         <button 
           onClick={() => navigate(-1)} 
-          className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-200/80 rounded-xl transition-all shadow-sm hover:shadow active:scale-95 w-fit focus:outline-none p-0"
-          style={{ padding: '8px 14px' }}
+          className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-200/80 rounded-xl transition-all shadow-2xs hover:shadow active:scale-95 w-fit focus:outline-none"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
           <span>Back</span>
         </button>
-
-        {/* Breadcrumbs */}
-        <nav className="text-xs text-slate-500 font-medium">
-          <Link to="/" className="hover:text-slate-800 transition-colors">Home</Link>
-          <span className="mx-2 text-slate-300">/</span>
-          {product.category && (
-            <>
-              <span className="text-slate-400 capitalize">{product.category}</span>
-              <span className="mx-2 text-slate-300">/</span>
-            </>
-          )}
-          <span className="font-bold text-slate-800 line-clamp-1 max-w-[200px] inline-block align-bottom">{product.name}</span>
-        </nav>
       </div>
 
       {/* Main Details Panel Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 bg-white p-6 md:p-8 rounded-3xl border border-slate-100/80 shadow-[0_4px_30px_rgba(0,0,0,0.01)] mb-10">
         
-        {/* Left Side Column: Images & Gallery */}
-        <div className="lg:col-span-5 flex flex-col md:flex-row gap-4">
+        {/* Left Side Column: Single Main Image Display */}
+        <div className="lg:col-span-5 flex flex-col gap-4">
           
-          {/* Gallery Sidebar */}
-          {thumbnails.length > 1 && (
-            <div className="flex flex-row md:flex-col gap-2.5 order-2 md:order-1 justify-center md:justify-start">
-              {thumbnails.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => setActiveImage(t.url)}
-                  className={`w-14 h-14 rounded-xl border-2 overflow-hidden bg-slate-50/50 flex items-center justify-center p-1.5 transition-all focus:outline-none p-0 ${
-                    activeImage === t.url ? 'border-indigo-600 scale-105 shadow-sm' : 'border-slate-100 hover:border-slate-200'
-                  }`}
-                  style={{ padding: '6px' }}
-                >
-                  <img src={t.url} alt={t.label} className="w-full h-full object-contain" style={t.style} />
-                </button>
-              ))}
-            </div>
-          )}
-
           {/* Frame of Active Image with Zoom */}
-          <div className="flex-1 relative aspect-square rounded-2xl border border-slate-100/80 bg-slate-50/30 flex items-center justify-center overflow-hidden order-1 md:order-2">
+          <div className="w-full relative aspect-square rounded-2xl border border-slate-100/80 bg-slate-50/30 flex items-center justify-center overflow-hidden">
             {activeImage && !imageError ? (
               <div 
                 className="w-full h-full overflow-hidden flex items-center justify-center relative group"
@@ -294,9 +280,22 @@ export default function ProductDetails({
         {/* Right Side Column: Meta Info & Actions */}
         <div className="lg:col-span-7 flex flex-col justify-between">
           <div>
+            {/* Breadcrumbs inside Product Card */}
+            <nav className="text-xs text-slate-400 font-medium mb-3 flex items-center gap-1.5 flex-wrap">
+              <Link to="/" className="hover:text-indigo-600 transition-colors">Home</Link>
+              <span className="text-slate-300">/</span>
+              {product.category && (
+                <>
+                  <span className="text-slate-500 capitalize">{product.category}</span>
+                  <span className="text-slate-300">/</span>
+                </>
+              )}
+              <span className="font-semibold text-slate-700 truncate max-w-[260px]">{product.name}</span>
+            </nav>
+
             {/* Brand */}
             {product.brand && (
-              <span className="text-[11px] font-bold text-slate-450 uppercase tracking-widest mb-1.5 block">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">
                 {product.brand}
               </span>
             )}
@@ -330,8 +329,8 @@ export default function ProductDetails({
               <div className="flex flex-col">
                 <span className="text-[10px] text-slate-400 font-semibold mb-0.5 uppercase tracking-wider leading-none">Special Store Price</span>
                 <div className="flex items-baseline gap-2.5">
-                  <span className="text-3xl font-black text-slate-900">${product.price.toFixed(2)}</span>
-                  <span className="text-sm text-slate-400 line-through">${(product.price * 1.25).toFixed(2)}</span>
+                  <span className="text-3xl font-black text-slate-900">${(product.price || 0).toFixed(2)}</span>
+                  <span className="text-sm text-slate-400 line-through">${((product.price || 0) * 1.25).toFixed(2)}</span>
                   <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100/30">20% OFF</span>
                 </div>
               </div>
@@ -403,46 +402,37 @@ export default function ProductDetails({
               </div>
 
               {/* Add to Cart, Buy Now, Add to Wishlist Row */}
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex flex-col sm:flex-row gap-2.5">
                 <button
                   type="button"
                   onClick={() => onAddToCart(product, qty)}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 px-5 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 active:scale-95 disabled:bg-slate-100 disabled:text-slate-400 rounded-xl transition-all shadow-sm hover:shadow p-0"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-4 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 active:scale-95 disabled:bg-slate-100 disabled:text-slate-400 rounded-xl transition-all shadow-2xs"
                   disabled={!hasStock}
-                  style={{ padding: '12px 20px' }}
                 >
-                  <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                  </svg>
+                  <ShoppingBag className="w-4 h-4 text-white" />
                   <span>Add to Cart</span>
                 </button>
                 
                 <button
                   type="button"
                   onClick={handleBuyNow}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 px-5 text-xs font-bold text-white bg-amber-500 hover:bg-amber-600 active:scale-95 disabled:bg-slate-100 disabled:text-slate-400 rounded-xl transition-all shadow-sm hover:shadow p-0"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-4 text-xs font-bold text-white bg-amber-500 hover:bg-amber-600 active:scale-95 disabled:bg-slate-100 disabled:text-slate-400 rounded-xl transition-all shadow-2xs"
                   disabled={!hasStock || buying}
-                  style={{ padding: '12px 20px' }}
                 >
-                  <svg className="w-4.5 h-4.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
+                  <Zap className="w-4 h-4 text-white fill-white" />
                   <span>{buying ? 'Processing...' : 'Buy Now'}</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => product.id !== undefined && onToggleFavorite(product.id)}
-                  className={`flex-1 sm:flex-initial py-3 px-4 text-xs font-bold rounded-xl border transition-all flex items-center justify-center gap-1.5 focus:outline-none p-0 ${
+                  className={`flex-1 sm:flex-initial py-2.5 px-4 text-xs font-bold rounded-xl border transition-all flex items-center justify-center gap-1.5 focus:outline-none ${
                     isFav 
-                      ? 'bg-rose-50 text-rose-600 border-rose-200/50 hover:bg-rose-100/50' 
-                      : 'bg-white text-slate-650 border-slate-200 hover:bg-slate-50'
+                      ? 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100' 
+                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
                   }`}
-                  style={{ padding: '12px 16px', minWidth: '120px' }}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={isFav ? "currentColor" : "none"} stroke="currentColor" strokeWidth={2} className="w-4.5 h-4.5 text-rose-500">
-                    <path d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-                  </svg>
+                  <Heart className={`w-4 h-4 ${isFav ? 'text-rose-500 fill-rose-500' : 'text-slate-400'}`} />
                   <span>{isFav ? 'Wishlisted' : 'Wishlist'}</span>
                 </button>
               </div>
@@ -533,46 +523,153 @@ export default function ProductDetails({
             ))}
           </div>
 
-          {/* Verification Badge panel */}
-          <div className="md:col-span-4 bg-slate-50 p-4 rounded-2xl border border-slate-150/40 flex flex-col justify-center gap-2">
-            <span className="text-xs font-bold text-slate-700">100% Verified Review Auditing</span>
-            <p className="text-[11px] text-slate-500 leading-normal">
-              Aura verifies that reviews represent valid merchant purchases. Feedback is aggregated to support consumer purchasing decisions.
-            </p>
+          {/* Verification & Action panel */}
+          <div className="md:col-span-4 bg-slate-50 p-5 rounded-2xl border border-slate-200/60 flex flex-col justify-between gap-3">
+            <div>
+              <span className="text-xs font-extrabold text-slate-800 flex items-center gap-1.5 mb-1">
+                <CheckCircle className="w-4 h-4 text-emerald-600" />
+                <span>Verified Buyer Reviews</span>
+              </span>
+              <p className="text-[11px] text-slate-500 leading-normal">
+                Reviews with the green <b>Verified Purchase</b> badge are written by customers who bought this item.
+              </p>
+            </div>
+            
+            {auth?.user ? (
+              <a href="#write-review-form" className="text-xs font-bold text-indigo-600 hover:text-indigo-700 underline flex items-center gap-1">
+                <MessageSquare className="w-3.5 h-3.5" /> Write a review for this item
+              </a>
+            ) : (
+              <button onClick={() => navigate('/login')} className="text-xs font-bold text-indigo-600 hover:text-indigo-700 underline text-left border-none bg-transparent p-0 cursor-pointer">
+                Login to write a review
+              </button>
+            )}
           </div>
         </div>
 
+        {/* Write Review Form Card */}
+        {currentUser && (
+          <div id="write-review-form" className="bg-slate-50/80 p-5 rounded-2xl border border-slate-200/80 mb-8">
+            <h4 className="text-sm font-extrabold text-slate-800 mb-3 flex items-center gap-2">
+              <MessageSquare className="w-4 h-4 text-indigo-600" />
+              <span>Share Your Feedback</span>
+            </h4>
+
+            {reviewSuccess && (
+              <div className="mb-3 p-3 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-xl border border-emerald-200">
+                {reviewSuccess}
+              </div>
+            )}
+
+            {reviewError && (
+              <div className="mb-3 p-3 bg-rose-50 text-rose-700 text-xs font-bold rounded-xl border border-rose-200">
+                {reviewError}
+              </div>
+            )}
+
+            <form onSubmit={handleReviewSubmit} className="flex flex-col gap-3">
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-bold text-slate-600">Your Rating:</span>
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setNewRating(star)}
+                      className="p-1 focus:outline-none border-none bg-transparent cursor-pointer"
+                    >
+                      <Star className={`w-5 h-5 ${star <= newRating ? 'text-amber-400 fill-amber-400' : 'text-slate-300'}`} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <textarea
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="Write your thoughts about this product..."
+                rows={3}
+                required
+                className="w-full p-3 text-xs bg-white rounded-xl border border-slate-200 focus:outline-none focus:border-indigo-600 resize-none font-medium text-slate-800"
+              />
+
+              <button
+                type="submit"
+                disabled={submittingReview || !newComment.trim()}
+                className="self-end px-5 py-2 text-xs font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all disabled:opacity-50 cursor-pointer border-none shadow-xs"
+              >
+                {submittingReview ? 'Submitting...' : 'Post Review'}
+              </button>
+            </form>
+          </div>
+        )}
+
         <hr className="border-slate-100 my-6" />
 
-        {/* Mock Reviews Lists */}
+        {/* Live + Mock Reviews List */}
         <div className="space-y-6">
-          {mockReviews.map((rev) => (
-            <div key={rev.id} className="pb-6 border-b border-slate-100 last:border-b-0 last:pb-0">
-              <div className="flex items-center gap-2.5 mb-2">
-                <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center font-bold text-xs text-indigo-600 border border-indigo-150/30">
-                  {rev.author.split(' ').map(n => n[0]).join('')}
+          {liveReviews.length > 0 ? (
+            liveReviews.map((rev, idx) => {
+              const authorName = rev.user?.name || rev.user?.email || 'Verified Customer';
+              const isVerified = rev.isVerifiedPurchase ?? rev.verifiedPurchase ?? true;
+              const dateStr = rev.createdAt ? new Date(rev.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently';
+
+              return (
+                <div key={rev.id || idx} className="pb-6 border-b border-slate-100 last:border-b-0 last:pb-0">
+                  <div className="flex items-center gap-2.5 mb-2">
+                    <div className="w-7 h-7 rounded-full bg-indigo-50 flex items-center justify-center font-extrabold text-xs text-indigo-600 border border-indigo-100">
+                      {authorName.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="text-xs font-bold text-slate-800">{authorName}</span>
+                    {isVerified ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 uppercase tracking-wider">
+                        <CheckCircle className="w-3 h-3 text-emerald-600" />
+                        Verified Purchase
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200 uppercase tracking-wider">
+                        Community Review
+                      </span>
+                    )}
+                    <span className="text-[10px] text-slate-400 font-semibold ml-auto">{dateStr}</span>
+                  </div>
+
+                  <div className="flex items-center gap-0.5 text-amber-400 mb-2">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className={`w-3.5 h-3.5 ${i < rev.rating ? 'text-amber-400 fill-amber-400' : 'text-slate-200'}`} />
+                    ))}
+                  </div>
+
+                  <p className="text-xs text-slate-650 leading-relaxed font-medium">{rev.comment}</p>
                 </div>
-                <span className="text-xs font-bold text-slate-750">{rev.author}</span>
-                {rev.verified && (
-                  <span className="text-[9px] font-extrabold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 uppercase tracking-wider">
-                    Verified Buyer
+              );
+            })
+          ) : (
+            mockReviews.map((rev) => (
+              <div key={rev.id} className="pb-6 border-b border-slate-100 last:border-b-0 last:pb-0">
+                <div className="flex items-center gap-2.5 mb-2">
+                  <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center font-bold text-xs text-indigo-600 border border-indigo-150/30">
+                    {rev.author.split(' ').map(n => n[0]).join('')}
+                  </div>
+                  <span className="text-xs font-bold text-slate-750">{rev.author}</span>
+                  <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 uppercase tracking-wider">
+                    <CheckCircle className="w-3 h-3 text-emerald-600" />
+                    Verified Purchase
                   </span>
-                )}
-                <span className="text-[10px] text-slate-400 font-semibold ml-auto">{rev.date}</span>
-              </div>
+                  <span className="text-[10px] text-slate-400 font-semibold ml-auto">{rev.date}</span>
+                </div>
 
-              <div className="flex items-center gap-0.5 text-amber-400 mb-2">
-                {[...Array(5)].map((_, i) => (
-                  <svg key={i} className={`w-3.5 h-3.5 ${i < rev.rating ? 'fill-current' : 'text-slate-100 fill-current'}`} viewBox="0 0 24 24">
-                    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-                  </svg>
-                ))}
-              </div>
+                <div className="flex items-center gap-0.5 text-amber-400 mb-2">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className={`w-3.5 h-3.5 ${i < rev.rating ? 'text-amber-400 fill-amber-400' : 'text-slate-200'}`} />
+                  ))}
+                </div>
 
-              <h4 className="text-xs font-bold text-slate-800 mb-1.5">{rev.title}</h4>
-              <p className="text-xs text-slate-550 leading-relaxed">{rev.content}</p>
-            </div>
-          ))}
+                <h4 className="text-xs font-bold text-slate-800 mb-1.5">{rev.title}</h4>
+                <p className="text-xs text-slate-550 leading-relaxed">{rev.content}</p>
+              </div>
+            ))
+          )}
         </div>
       </div>
 

@@ -44,10 +44,16 @@ public class ProductController {
     @GetMapping("/products")
     public ResponseEntity<List<ProductCardDTO>> getProducts(
             @RequestParam(required = false) String query,
+            @RequestParam(required = false) String category,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size) {
         if (query != null && !query.trim().isEmpty()) {
             return new ResponseEntity<>(productService.searchProducts(query), HttpStatus.ACCEPTED);
+        }
+        if (category != null && !category.trim().isEmpty()) {
+            int pageNum = (page != null) ? page : 0;
+            int pageSize = (size != null) ? size : 10;
+            return new ResponseEntity<>(productService.getProductsByCategoryAndPage(category, pageNum, pageSize), HttpStatus.ACCEPTED);
         }
         if (page != null) {
             int pageSize = (size != null) ? size : 50;
@@ -56,9 +62,26 @@ public class ProductController {
         return new ResponseEntity<>(productService.getAllProductsDTO(), HttpStatus.ACCEPTED);
     }
 
+    @GetMapping("/products/category")
+    public ResponseEntity<List<ProductCardDTO>> getProductsByCategory(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false, defaultValue = "0") Integer page,
+            @RequestParam(required = false, defaultValue = "10") Integer size) {
+        String targetCategory = (name != null && !name.trim().isEmpty()) ? name : category;
+        if (targetCategory == null || targetCategory.trim().isEmpty()) {
+            return ResponseEntity.ok(List.of());
+        }
+        return new ResponseEntity<>(productService.getProductsByCategoryAndPage(targetCategory, page, size), HttpStatus.ACCEPTED);
+    }
+
     @GetMapping("/products/featured")
-    public ResponseEntity<List<ProductCardDTO>> getFeaturedProducts() {
-        return new ResponseEntity<>(productService.getFeaturedProducts(), HttpStatus.ACCEPTED);
+    public ResponseEntity<List<ProductCardDTO>> getFeaturedProducts(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+        int pageNum = (page != null) ? page : 0;
+        int pageSize = (size != null) ? size : 16;
+        return new ResponseEntity<>(productService.getFeaturedProducts(pageNum, pageSize), HttpStatus.ACCEPTED);
     }
 
     @GetMapping("/products/new-arrivals")
@@ -76,6 +99,11 @@ public class ProductController {
         return new ResponseEntity<>(productService.getMostReviewedProducts(), HttpStatus.ACCEPTED);
     }
 
+    @GetMapping("/products/most-viewed")
+    public ResponseEntity<List<ProductCardDTO>> getMostViewed() {
+        return new ResponseEntity<>(productService.getMostViewedProducts(), HttpStatus.ACCEPTED);
+    }
+
     @GetMapping("/products/suggestions")
     public ResponseEntity<List<String>> getSuggestions(@RequestParam String query) {
         if (query == null || query.trim().isEmpty()) {
@@ -91,7 +119,12 @@ public class ProductController {
 
     @GetMapping("/products/{id}")
     public ResponseEntity<Product> getProductById(@PathVariable Long id) {
-        return new ResponseEntity<Product>(productService.getProductById(id), HttpStatus.ACCEPTED);
+        productService.incrementViewCount(id);
+        Product product = productService.getProductById(id);
+        if (product == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(product);
     }
 
     @PostMapping("/products")
@@ -148,8 +181,8 @@ public class ProductController {
             existing.setDescription(product.getDescription());
             existing.setCategory(product.getCategory());
             existing.setBrand(product.getBrand());
-            existing.setPrice(product.getPrice());
-            existing.setStock(product.getStock());
+            // variants handled separately in a robust implementation
+            // existing.setStock(product.getStock());
             existing.setImages(product.getImages());
             if (product.getMainImage() != null) {
                 existing.setMainImage(product.getMainImage());

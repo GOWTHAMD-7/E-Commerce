@@ -23,6 +23,7 @@ import {
   fetchNewArrivals,
   fetchTopRatedProducts,
   fetchMostReviewedProducts,
+  fetchMostViewedProducts,
   requestCancelOrder,
   confirmCancelOrder,
   fetchCategories
@@ -31,12 +32,74 @@ import type { Product, CartItem, Order, Address } from './types';
 import { AuthContext } from './context/AuthContext';
 import LoginForm from './components/LoginForm';
 import ProductList from './components/ProductList';
+import HeroCarousel from './components/HeroCarousel';
 import ProductDetails from './components/ProductDetails';
 import ProtectedRoute from './components/ProtectedRoute';
 import Unauthorized from './components/Unauthorized';
 import SellerDashboard from './components/SellerDashboard';
 import AdminDashboard from './components/AdminDashboard';
 import SearchBar from './components/SearchBar';
+import { 
+  Sparkles, 
+  Flame, 
+  ShoppingBag, 
+  Laptop, 
+  Shirt, 
+  Home as HomeIcon, 
+  BookOpen, 
+  Dumbbell, 
+  Car, 
+  ShoppingCart, 
+  Tag, 
+  Baby, 
+  Watch, 
+  Smile, 
+  Tv, 
+  Camera 
+} from 'lucide-react';
+
+function CategoryIconHelper({ name, isActive }: { name: string; isActive: boolean }) {
+  const lower = name.toLowerCase();
+  const iconClass = `w-3.5 h-3.5 shrink-0 ${isActive ? 'text-white' : 'text-slate-500 group-hover:text-slate-800'}`;
+  
+  if (lower.includes('electronic') || lower.includes('mobile') || lower.includes('phone')) {
+    return <Laptop className={iconClass} />;
+  }
+  if (lower.includes('camera')) {
+    return <Camera className={iconClass} />;
+  }
+  if (lower.includes('appliance') || lower.includes('tv')) {
+    return <Tv className={iconClass} />;
+  }
+  if (lower.includes('cloth') || lower.includes('fashion') || lower.includes('footwear') || lower.includes('wear')) {
+    return <Shirt className={iconClass} />;
+  }
+  if (lower.includes('home') || lower.includes('kitchen') || lower.includes('living') || lower.includes('furniture')) {
+    return <HomeIcon className={iconClass} />;
+  }
+  if (lower.includes('book')) {
+    return <BookOpen className={iconClass} />;
+  }
+  if (lower.includes('sport') || lower.includes('outdoor')) {
+    return <Dumbbell className={iconClass} />;
+  }
+  if (lower.includes('jewelry') || lower.includes('watch')) {
+    return <Watch className={iconClass} />;
+  }
+  if (lower.includes('baby') || lower.includes('toy')) {
+    return <Baby className={iconClass} />;
+  }
+  if (lower.includes('auto')) {
+    return <Car className={iconClass} />;
+  }
+  if (lower.includes('groc') || lower.includes('food')) {
+    return <ShoppingCart className={iconClass} />;
+  }
+  if (lower.includes('pet')) {
+    return <Smile className={iconClass} />;
+  }
+  return <Tag className={iconClass} />;
+}
 
 export default function App() {
   const auth = useContext(AuthContext);
@@ -54,6 +117,7 @@ export default function App() {
   const [newArrivals, setNewArrivals] = useState<Product[]>([]);
   const [topRated, setTopRated] = useState<Product[]>([]);
   const [mostReviewed, setMostReviewed] = useState<Product[]>([]);
+  const [mostViewed, setMostViewed] = useState<Product[]>([]);
   const [sectionsLoading, setSectionsLoading] = useState<boolean>(true);
 
   // Shopping Cart States
@@ -62,6 +126,7 @@ export default function App() {
   // Placed Orders States
   const [orders, setOrders] = useState<Order[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeCategory, setActiveCategory] = useState('');
 
   // Categories State
   const [categories, setCategories] = useState<string[]>([]);
@@ -142,16 +207,18 @@ export default function App() {
     const fetchSections = async () => {
       try {
         setSectionsLoading(true);
-        const [featuredData, newArrivalsData, topRatedData, mostReviewedData] = await Promise.all([
-          fetchFeaturedProducts(),
+        const [featuredData, newArrivalsData, topRatedData, mostReviewedData, mostViewedData] = await Promise.all([
+          fetchFeaturedProducts(0, 16),
           fetchNewArrivals(),
           fetchTopRatedProducts(),
-          fetchMostReviewedProducts()
+          fetchMostReviewedProducts(),
+          fetchMostViewedProducts()
         ]);
         setFeaturedProducts(featuredData);
         setNewArrivals(newArrivalsData);
         setTopRated(topRatedData);
         setMostReviewed(mostReviewedData);
+        setMostViewed(mostViewedData);
       } catch (err) {
         console.error('Failed to fetch homepage sections:', err);
       } finally {
@@ -167,9 +234,11 @@ export default function App() {
 
     let active = true;
     
+    const effectiveQuery = searchQuery.trim() !== '' ? searchQuery : activeCategory;
+
     const fetchFn = async () => {
       try {
-        if (searchQuery.trim() === '') {
+        if (effectiveQuery.trim() === '') {
           // Fetch 48 products initially (page 0, size 48).
           // Page size 48 corresponds to two page sizes of 24, which aligns offset for load more.
           const data = await fetchProducts(0, 48);
@@ -180,7 +249,7 @@ export default function App() {
             setLoading(false);
           }
         } else {
-          const data = await searchProducts(searchQuery);
+          const data = await searchProducts(effectiveQuery);
           if (active) {
             setProducts(data || []);
             setHasMore(false); // Disable Load More during search
@@ -199,7 +268,7 @@ export default function App() {
     setError(null);
 
     // If query is empty, fetch immediately; otherwise debounce it by 300ms
-    if (searchQuery.trim() === '') {
+    if (effectiveQuery.trim() === '') {
       fetchFn();
     } else {
       const delayDebounceFn = setTimeout(() => {
@@ -214,7 +283,7 @@ export default function App() {
     return () => {
       active = false;
     };
-  }, [searchQuery]);
+  }, [searchQuery, activeCategory]);
 
   const handleLoadMore = async () => {
     if (loadingMore || !hasMore || searchQuery.trim() !== '') return;
@@ -831,32 +900,49 @@ export default function App() {
         )}
 
         {/* Category Strip Row */}
-        <div className="border-t border-[#E5E5E7]/50 pt-2.5 mt-0.5 flex items-center text-xs font-semibold text-[#6E6E73] w-full overflow-x-auto scrollbar-none select-none gap-6">
-          <button 
-            onClick={() => setSearchQuery('')}
-            className="hover:text-[#111113] transition-colors focus:outline-none bg-transparent border-none p-0 text-xs font-semibold text-[#6E6E73] cursor-pointer shrink-0"
-          >
-            All categories
-          </button>
+        <div className="border-t border-[#E5E5E7]/60 pt-2 pb-1.5 mt-1 flex items-center text-xs font-semibold text-[#6E6E73] w-full overflow-x-auto scrollbar-none select-none gap-2" style={{ scrollbarWidth: 'none' }}>
           
           <button 
-            onClick={() => setSearchQuery('deal')}
-            className="flex items-center gap-1 text-red-650 hover:text-red-700 transition-colors font-bold focus:outline-none bg-transparent border-none p-0 shrink-0 cursor-pointer"
-            style={{ color: '#E11D48' }}
+            onClick={() => { setSearchQuery(''); setActiveCategory('deal'); }}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-extrabold transition-all duration-200 shrink-0 cursor-pointer border ${
+              activeCategory === 'deal' 
+                ? 'bg-rose-600 text-white border-rose-600 shadow-2xs' 
+                : 'bg-rose-50/80 text-rose-600 border-rose-150 hover:bg-rose-100'
+            }`}
           >
-            <span>🔥</span>
+            <Flame className={`w-3.5 h-3.5 shrink-0 ${activeCategory === 'deal' ? 'text-white fill-white' : 'text-rose-500 fill-rose-500'}`} />
             <span>Today's Deals</span>
           </button>
 
-          {categories.map((cat, idx) => (
-            <button 
-              key={idx}
-              onClick={() => setSearchQuery(cat)}
-              className="hover:text-[#111113] transition-colors focus:outline-none bg-transparent border-none p-0 text-xs font-semibold text-[#6E6E73] cursor-pointer shrink-0"
-            >
-              {cat}
-            </button>
-          ))}
+          <button 
+            onClick={() => { setSearchQuery(''); setActiveCategory(''); }}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all duration-200 shrink-0 cursor-pointer border ${
+              activeCategory === '' && searchQuery.trim() === '' 
+                ? 'bg-slate-900 text-white border-slate-900 shadow-2xs' 
+                : 'bg-slate-50 text-slate-700 border-slate-200/80 hover:bg-slate-100'
+            }`}
+          >
+            <ShoppingBag className={`w-3.5 h-3.5 shrink-0 ${activeCategory === '' && searchQuery.trim() === '' ? 'text-white' : 'text-slate-500'}`} />
+            <span>All Categories</span>
+          </button>
+
+          {categories.map((cat, idx) => {
+            const isActive = activeCategory === cat;
+            return (
+              <button 
+                key={idx}
+                onClick={() => { setSearchQuery(''); setActiveCategory(cat); }}
+                className={`group flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-200 shrink-0 cursor-pointer border ${
+                  isActive 
+                    ? 'bg-slate-900 text-white border-slate-900 shadow-2xs' 
+                    : 'bg-white text-slate-700 border-slate-200/80 hover:bg-slate-50 hover:border-slate-300'
+                }`}
+              >
+                <CategoryIconHelper name={cat} isActive={isActive} />
+                <span>{cat}</span>
+              </button>
+            );
+          })}
         </div>
       </header>
 
@@ -868,41 +954,21 @@ export default function App() {
           path="/" 
           element={
             <>
-              {/* Hero Section */}
-              <section className="relative overflow-hidden bg-[#111113] text-white rounded-3xl my-8 px-8 py-16 sm:px-12 sm:py-24 shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-white/10">
-                <div className="absolute -top-40 -right-40 w-96 h-96 bg-white/5 rounded-full blur-[100px]"></div>
-                
-                <div className="relative max-w-2xl mx-auto text-center flex flex-col items-center gap-6">
-                  <span className="inline-flex items-center gap-1.5 px-4.5 py-1 text-[10px] font-bold text-white bg-white/10 border border-white/20 rounded-full uppercase tracking-widest">
-                    ✨ Summer Collection 2026
-                  </span>
-                  <h2 className="text-4xl sm:text-5xl font-bold tracking-tight leading-tight" style={{ fontFamily: '"Playfair Display", "Cormorant Garamond", serif' }}>
-                    Discover Premium Goods
-                  </h2>
-                  <p className="text-[#E5E5E7]/70 text-sm sm:text-base max-w-xl leading-relaxed">
-                    Explore our curated collection of high-quality products. Enjoy seamless interactions, real-time stock levels, and modern designs tailored for you.
-                  </p>
-                  <div className="flex flex-wrap justify-center items-center gap-6 text-xs text-[#E5E5E7]/50 font-medium pt-6 border-t border-white/10 w-full mt-2 tracking-wider">
-                    <span className="flex items-center gap-1.5">
-                      🚀 Free Shipping
-                    </span>
-                    <span className="hidden sm:inline text-white/20">•</span>
-                    <span className="flex items-center gap-1.5">
-                      🔒 Secure Checkout
-                    </span>
-                    <span className="hidden sm:inline text-white/20">•</span>
-                    <span className="flex items-center gap-1.5">
-                      🤝 24/7 Support
-                    </span>
-                  </div>
-                </div>
-              </section>
+              {/* Flipkart / Amazon Style Creative Hero Carousel & Category Bubble Bar */}
+              <HeroCarousel 
+                products={products}
+                onSelectCategory={(category) => {
+                  setSearchQuery('');
+                  setActiveCategory(category);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+              />
 
               <ProductList
                 products={products}
                 loading={loading}
                 error={error}
-                searchQuery={searchQuery}
+                searchQuery={searchQuery.trim() !== '' ? searchQuery : activeCategory}
                 favorites={favorites}
                 onToggleFavorite={handleToggleFavorite}
                 onAddToCart={handleAddToCart}
@@ -916,7 +982,15 @@ export default function App() {
                 newArrivals={newArrivals}
                 topRated={topRated}
                 mostReviewed={mostReviewed}
+                mostViewed={mostViewed}
                 sectionsLoading={sectionsLoading}
+                categories={categories}
+                activeCategory={activeCategory}
+                onSelectCategory={(category) => {
+                  setSearchQuery('');
+                  setActiveCategory(category);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
               />
             </>
           } 

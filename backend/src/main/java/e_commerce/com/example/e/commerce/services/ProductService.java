@@ -71,44 +71,69 @@ public class ProductService {
         existing.setCategory(updatedProduct.getCategory());
         existing.setBrand(updatedProduct.getBrand());
         existing.setPrice(updatedProduct.getPrice());
-        existing.setStock(updatedProduct.getStock());
+        existing.setDiscountedPrice(updatedProduct.getDiscountedPrice());
+        existing.setDiscountPercent(updatedProduct.getDiscountPercent());
         existing.setImages(updatedProduct.getImages());
         if (updatedProduct.getMainImage() != null) {
             existing.setMainImage(updatedProduct.getMainImage());
         }
+        existing.setStock(updatedProduct.getStock());
         return productRepo.save(existing);
     }
 
     public ProductCardDTO convertToDTO(Product product) {
         if (product == null) return null;
-        return new ProductCardDTO(
-            product.getId(),
-            product.getName(),
-            product.getPrice(),
-            product.getMainImage(),
-            product.getRating(),
-            product.getReviewCount(),
-            product.getStock(),
-            product.getBrand(),
-            product.getCategory(),
-            product.getDescription()
-        );
+        return ProductCardDTO.builder()
+            .id(product.getId())
+            .name(product.getName())
+            .price(product.getPrice())
+            .discountedPrice(product.getDiscountedPrice())
+            .discountPercent(product.getDiscountPercent())
+            .mainImage(product.getMainImage())
+            .images(product.getImages())
+            .rating(product.getRating())
+            .reviewCount(product.getReviewCount())
+            .viewCount(product.getViewCount())
+            .stock(product.getStock())
+            .brand(product.getBrand())
+            .category(product.getCategory())
+            .subCategory(product.getSubCategory())
+            .description(product.getDescription())
+            .build();
     }
 
     public List<ProductCardDTO> getFeaturedProducts() {
-        return productRepo.findRandomProducts(20).stream()
+        return getFeaturedProducts(0, 16);
+    }
+
+    public List<ProductCardDTO> getFeaturedProducts(int page, int size) {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        return productRepo.findAllByOrderByViewCountDesc(pageable).getContent().stream()
             .map(this::convertToDTO)
             .toList();
     }
 
+    public List<ProductCardDTO> getMostViewedProducts() {
+        return productRepo.findTop15ByOrderByViewCountDesc().stream()
+            .map(this::convertToDTO)
+            .toList();
+    }
+
+    public void incrementViewCount(Long id) {
+        productRepo.findById(id).ifPresent(p -> {
+            p.setViewCount((p.getViewCount() != null ? p.getViewCount() : 0L) + 1);
+            productRepo.save(p);
+        });
+    }
+
     public List<ProductCardDTO> getNewArrivals() {
-        return productRepo.findTop20ByOrderByIdDesc().stream()
+        return productRepo.findTop15ByOrderByIdDesc().stream()
             .map(this::convertToDTO)
             .toList();
     }
 
     public List<ProductCardDTO> getTopRatedProducts() {
-        return productRepo.findTop20ByOrderByRatingDesc().stream()
+        return productRepo.findTop15ByOrderByRatingDesc().stream()
             .map(this::convertToDTO)
             .toList();
     }
@@ -122,6 +147,13 @@ public class ProductService {
     public List<ProductCardDTO> getProductsByPage(int page, int size) {
         org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
         return productRepo.findAll(pageable).getContent().stream()
+            .map(this::convertToDTO)
+            .toList();
+    }
+
+    public List<ProductCardDTO> getProductsByCategoryAndPage(String category, int page, int size) {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        return productRepo.findByCategoryFlexible(category, pageable).getContent().stream()
             .map(this::convertToDTO)
             .toList();
     }
