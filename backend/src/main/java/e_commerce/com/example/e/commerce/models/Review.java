@@ -9,6 +9,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Column;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -48,7 +49,16 @@ public class Review {
 
     private String comment;
 
-    private boolean isVerifiedPurchase = false;
+    @Column(name = "is_verified_purchase", columnDefinition = "boolean default false")
+    private Boolean isVerifiedPurchase = false;
+
+    public boolean isVerifiedPurchase() {
+        return Boolean.TRUE.equals(isVerifiedPurchase);
+    }
+
+    public void setVerifiedPurchase(boolean verifiedPurchase) {
+        this.isVerifiedPurchase = verifiedPurchase;
+    }
 
     @CreationTimestamp
     private LocalDateTime createdAt;
