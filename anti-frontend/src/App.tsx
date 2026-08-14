@@ -1,6 +1,6 @@
 // src/App.tsx
 import { useEffect, useState, useContext } from 'react';
-import { Routes, Route, useNavigate, Link } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation, Link } from 'react-router-dom';
 import { 
   fetchProducts, 
   deleteProduct, 
@@ -103,6 +103,17 @@ function CategoryIconHelper({ name, isActive }: { name: string; isActive: boolea
 export default function App() {
   const auth = useContext(AuthContext);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Placed Orders States
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeCategory, setActiveCategory] = useState('');
+
+  // Scroll to top automatically whenever the route, search, or category changes
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname, location.search, activeCategory, searchQuery]);
 
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -121,11 +132,6 @@ export default function App() {
 
   // Shopping Cart States
   const [cart, setCart] = useState<CartItem[]>([]);
-
-  // Placed Orders States
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState('');
 
   // Categories State
   const [categories, setCategories] = useState<string[]>([]);

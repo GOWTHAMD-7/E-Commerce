@@ -67,6 +67,8 @@ export async function fetchProducts(page?: number, size?: number): Promise<Produ
 export async function fetchProductsByCategory(category: string, page: number = 0, size: number = 10): Promise<Product[]> {
     if (!category || category.trim() === '') return [];
     
+    let categoryProducts: Product[] = [];
+
     // 1. Try dedicated category pagination endpoint first
     try {
         const params = new URLSearchParams({
@@ -79,55 +81,42 @@ export async function fetchProductsByCategory(category: string, page: number = 0
         if (response.ok) {
             const data = await response.json();
             if (Array.isArray(data) && data.length > 0) {
-                return data.map(sanitizeProduct);
+                categoryProducts = data.map(sanitizeProduct);
             }
         }
     } catch (err) {
         console.warn('Dedicated category endpoint error:', err);
     }
 
-    // 2. Try category query param endpoint /products?category=...
+    // If we got enough items (>= size), return immediately
+    if (categoryProducts.length >= size) {
+        return categoryProducts.slice(0, size);
+    }
+
+    // 2. If strict category match returned fewer items (e.g., 1 product), supplement using search query endpoint
     try {
-        const params = new URLSearchParams({
-            category,
-            page: page.toString(),
-            size: size.toString()
-        });
-        const response = await fetch(`${API_BASE_URL}/products?${params.toString()}`);
-        if (response.ok) {
-            const data = await response.json();
-            if (Array.isArray(data) && data.length > 0) {
-                // If backend returned generic un-filtered page 0 items, check if category matches
-                const filtered = data.filter(p => 
-                    p.category?.toLowerCase().includes(category.toLowerCase()) || 
-                    category.toLowerCase().includes(p.category?.toLowerCase() || '')
-                );
-                if (filtered.length > 0) {
-                    return filtered.map(sanitizeProduct);
+        const searchRes = await fetch(`${API_BASE_URL}/products?query=${encodeURIComponent(category)}`);
+        if (searchRes.ok) {
+            const searchData = await searchRes.json();
+            if (Array.isArray(searchData) && searchData.length > 0) {
+                const searchProducts = searchData.map(sanitizeProduct);
+                const existingIds = new Set(categoryProducts.map(p => p.id));
+                
+                // Add unique products from search results
+                for (const p of searchProducts) {
+                    if (!existingIds.has(p.id)) {
+                        categoryProducts.push(p);
+                        existingIds.add(p.id);
+                        if (categoryProducts.length >= size) break;
+                    }
                 }
             }
         }
     } catch (err) {
-        console.warn('Category param endpoint error:', err);
+        console.warn(`Fallback search for category ${category} error:`, err);
     }
 
-    // 3. Fallback: Use search query endpoint (same endpoint used by top bar), sort by viewCount DESC, and slice 10 items
-    try {
-        const searchRes = await fetch(`${API_BASE_URL}/products?query=${encodeURIComponent(category)}`);
-        if (searchRes.ok) {
-            const data = await searchRes.json();
-            if (Array.isArray(data)) {
-                const sorted = [...data].sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
-                const start = page * size;
-                const pageSlice = sorted.slice(start, start + size);
-                return pageSlice.map(sanitizeProduct);
-            }
-        }
-    } catch (err) {
-        console.error(`Failed to fetch category products fallback for ${category}:`, err);
-    }
-
-    return [];
+    return categoryProducts.slice(0, size);
 }
 
 export async function fetchCategories(): Promise<string[]> {
