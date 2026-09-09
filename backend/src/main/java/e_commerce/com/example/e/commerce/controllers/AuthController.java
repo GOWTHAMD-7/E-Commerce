@@ -8,12 +8,14 @@ import e_commerce.com.example.e.commerce.models.Role;
 import e_commerce.com.example.e.commerce.models.User;
 import e_commerce.com.example.e.commerce.services.JwtService;
 import e_commerce.com.example.e.commerce.services.UserService;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.Map;
-
 
 @RestController
 @RequestMapping("/auth")
@@ -27,6 +29,29 @@ public class AuthController {
 		this.jwtService = jwtService;
 	}
 
+	private void attachJwtCookie(HttpServletResponse response, String token) {
+		if (token == null) return;
+		ResponseCookie cookie = ResponseCookie.from("jwt_token", token)
+				.httpOnly(true)
+				.secure(true) // Required for HTTPS environments (Render/Vercel)
+				.path("/")
+				.sameSite("None") // Required for cross-domain cookie sharing
+				.maxAge(7 * 24 * 60 * 60) // 7 days
+				.build();
+		response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+	}
+
+	private void clearJwtCookie(HttpServletResponse response) {
+		ResponseCookie cookie = ResponseCookie.from("jwt_token", "")
+				.httpOnly(true)
+				.secure(true)
+				.path("/")
+				.sameSite("None")
+				.maxAge(0)
+				.build();
+		response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+	}
+
 	@PostMapping("/register")
 	public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request) {
 		try {
@@ -38,7 +63,6 @@ public class AuthController {
 					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new AuthResponse(null, "Invalid role. Must be CUSTOMER, SELLER, or ADMIN"));
 				}
 			}
-			// Creates user with enabled = false, generates OTP and logs to console / sends email
 			userService.registerUser(request.getName(), request.getEmail(), request.getPassword(), roleEnum);
 			return ResponseEntity.ok(new AuthResponse(null, "Verification code sent to email. Please verify."));
 		} catch (RuntimeException e) {
@@ -47,7 +71,7 @@ public class AuthController {
 	}
 
 	@PostMapping("/login")
-	public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
+	public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request, HttpServletResponse response) {
 		try {
 			User user = userService.findByEmail(request.getEmail());
 			if (!userService.validatePassword(request.getPassword(), user.getPassword())) {
@@ -57,6 +81,7 @@ public class AuthController {
 				return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new AuthResponse(null, "Please verify your email first using the OTP code sent to your email."));
 			}
 			String token = jwtService.generateToken(user);
+			attachJwtCookie(response, token);
 			return ResponseEntity.ok(new AuthResponse(token, "Login successful"));
 		} catch (RuntimeException e) {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new AuthResponse(null, e.getMessage()));
@@ -64,7 +89,7 @@ public class AuthController {
 	}
 
 	@PostMapping("/verify-otp")
-	public ResponseEntity<AuthResponse> verifyOtp(@RequestBody Map<String, String> request) {
+	public ResponseEntity<AuthResponse> verifyOtp(@RequestBody Map<String, String> request, HttpServletResponse response) {
 		String email = request.get("email");
 		String otp = request.get("otp");
 
@@ -77,6 +102,7 @@ public class AuthController {
 			if (isVerified) {
 				User user = userService.findByEmail(email);
 				String token = jwtService.generateToken(user);
+				attachJwtCookie(response, token);
 				return ResponseEntity.ok(new AuthResponse(token, "Account verified successfully"));
 			} else {
 				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new AuthResponse(null, "Invalid or expired verification code"));
@@ -115,7 +141,7 @@ public class AuthController {
 	}
 
 	@PostMapping("/reset-password")
-	public ResponseEntity<AuthResponse> resetPassword(@RequestBody Map<String, String> request) {
+	public ResponseEntity<AuthResponse> resetPassword(@RequestBody Map<String, String> request, HttpServletResponse response) {
 		String email = request.get("email");
 		String otp = request.get("otp");
 		String newPassword = request.get("newPassword");
@@ -128,6 +154,7 @@ public class AuthController {
 			userService.resetPassword(email, otp, newPassword);
 			User user = userService.findByEmail(email);
 			String token = jwtService.generateToken(user);
+			attachJwtCookie(response, token);
 			return ResponseEntity.ok(new AuthResponse(token, "Password reset successful"));
 		} catch (RuntimeException e) {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new AuthResponse(null, e.getMessage()));
@@ -135,7 +162,7 @@ public class AuthController {
 	}
 
 	@PostMapping("/google")
-	public ResponseEntity<AuthResponse> googleLogin(@RequestBody java.util.Map<String, String> request) {
+	public ResponseEntity<AuthResponse> googleLogin(@RequestBody Map<String, String> request, HttpServletResponse response) {
 		String idToken = request.get("idToken");
 		if (idToken == null || idToken.trim().isEmpty()) {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new AuthResponse(null, "Google ID token is required"));
@@ -143,9 +170,16 @@ public class AuthController {
 		try {
 			User user = userService.loginOrRegisterGoogle(idToken);
 			String token = jwtService.generateToken(user);
+			attachJwtCookie(response, token);
 			return ResponseEntity.ok(new AuthResponse(token, "Login successful"));
 		} catch (Exception e) {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new AuthResponse(null, e.getMessage()));
 		}
+	}
+
+	@PostMapping("/logout")
+	public ResponseEntity<MessageResponse> logout(HttpServletResponse response) {
+		clearJwtCookie(response);
+		return ResponseEntity.ok(new MessageResponse("Logout successful"));
 	}
 }

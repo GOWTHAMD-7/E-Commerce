@@ -13,6 +13,18 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface ProductRepo extends JpaRepository<Product, Long> {
+
+    @Query("SELECT p FROM Product p WHERE p.embedding IS NULL")
+    Page<Product> findByEmbeddingIsNull(Pageable pageable);
+
+    @Query(value = "SELECT * FROM product WHERE embedding IS NOT NULL AND coalesce(is_active, true) = true ORDER BY embedding <=> cast(:queryEmbedding as vector) LIMIT :limit", nativeQuery = true)
+    List<Product> findSimilarProductsNative(@Param("queryEmbedding") String queryEmbedding, @Param("limit") int limit);
+
+    default List<Product> findSimilarProducts(float[] embedding, int limit) {
+        String arrayString = java.util.Arrays.toString(embedding);
+        return findSimilarProductsNative(arrayString, limit);
+    }
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT p FROM Product p WHERE p.id = :id")
     Optional<Product> findByIdForUpdate(@Param("id") Long id);
@@ -65,5 +77,26 @@ public interface ProductRepo extends JpaRepository<Product, Long> {
         "ORDER BY rank DESC, sim_rank DESC", 
         nativeQuery = true)
     List<Product> searchProductsFTS(@Param("formattedQuery") String formattedQuery, @Param("rawQuery") String rawQuery);
+
+    @Query(value = 
+        "SELECT *, ts_rank(" +
+        "  setweight(to_tsvector('english', coalesce(name, '')), 'A') || " +
+        "  setweight(to_tsvector('english', coalesce(brand, '')), 'A') || " +
+        "  setweight(to_tsvector('english', coalesce(category, '')), 'B') || " +
+        "  setweight(to_tsvector('english', coalesce(description, '')), 'C'), " +
+        "  to_tsquery('english', :formattedQuery)" +
+        ") as rank, " +
+        "similarity(name, :rawQuery) as sim_rank " +
+        "FROM product " +
+        "WHERE ( " +
+        "  setweight(to_tsvector('english', coalesce(name, '')), 'A') || " +
+        "  setweight(to_tsvector('english', coalesce(brand, '')), 'A') || " +
+        "  setweight(to_tsvector('english', coalesce(category, '')), 'B') || " +
+        "  setweight(to_tsvector('english', coalesce(description, '')), 'C') " +
+        ") @@ to_tsquery('english', :formattedQuery) " +
+        "OR name % :rawQuery " +
+        "ORDER BY rank DESC, sim_rank DESC LIMIT :limit", 
+        nativeQuery = true)
+    List<Product> searchProductsFTSWithLimit(@Param("formattedQuery") String formattedQuery, @Param("rawQuery") String rawQuery, @Param("limit") int limit);
 }
 

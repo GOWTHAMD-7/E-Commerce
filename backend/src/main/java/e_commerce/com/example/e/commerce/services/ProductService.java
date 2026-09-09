@@ -16,13 +16,29 @@ public class ProductService {
     @Autowired
     private ProductRepo productRepo;
 
+    @Autowired
+    private ProductEmbeddingService productEmbeddingService;
+
     public Product createProduct(Product newProduct) {
+        enrichWithEmbedding(newProduct);
         return productRepo.save(newProduct);
     }
 
     public Product createProduct(Product newProduct, User seller) {
         newProduct.setSeller(seller);
+        enrichWithEmbedding(newProduct);
         return productRepo.save(newProduct);
+    }
+
+    private void enrichWithEmbedding(Product product) {
+        try {
+            float[] embedding = productEmbeddingService.generateProductEmbedding(product);
+            product.setEmbedding(embedding);
+        } catch (Exception e) {
+            // Note: If embedding generation fails, we log it but don't prevent the product from being created.
+            // This ensures product creation remains robust even if the ML model encounters an edge case.
+            System.err.println("Failed to generate embedding for product: " + product.getName() + " - " + e.getMessage());
+        }
     }
 
     public List<Product> getAllProducts()  {
@@ -188,6 +204,30 @@ public class ProductService {
 
     public List<String> getAllCategories() {
         return productRepo.findDistinctCategories();
+    }
+
+    public int backfillEmbeddings(int batchSize) {
+        int totalProcessed = 0;
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, batchSize);
+        
+        while (true) {
+            org.springframework.data.domain.Page<Product> productPage = productRepo.findByEmbeddingIsNull(pageable);
+            List<Product> products = productPage.getContent();
+            
+            if (products.isEmpty()) {
+                break;
+            }
+
+            for (Product product : products) {
+                enrichWithEmbedding(product);
+            }
+
+            productRepo.saveAll(products);
+            totalProcessed += products.size();
+            System.out.println("Processed " + totalProcessed + " products so far...");
+        }
+
+        return totalProcessed;
     }
 
     private int getRelevanceScore(Product product, String query) {

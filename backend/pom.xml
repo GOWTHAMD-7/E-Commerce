@@ -94,7 +94,20 @@
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
-			<scope>runtime</scope>
+		</dependency>
+
+		<!-- Source: https://mvnrepository.com/artifact/dev.langchain4j/langchain4j-embeddings-bge-small-en-v15-q -->
+		<dependency>
+			<groupId>dev.langchain4j</groupId>
+			<artifactId>langchain4j-embeddings-bge-small-en-v15-q</artifactId>
+			<version>1.19.0-beta29</version>
+			<scope>compile</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.hibernate.orm</groupId>
+			<artifactId>hibernate-vector</artifactId>
+			<version>6.6.15.Final</version>
 		</dependency>
 
 	<dependency>

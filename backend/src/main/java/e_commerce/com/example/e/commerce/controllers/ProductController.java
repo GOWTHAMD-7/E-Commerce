@@ -2,6 +2,8 @@ package e_commerce.com.example.e.commerce.controllers;
 
 import e_commerce.com.example.e.commerce.models.Product;
 import e_commerce.com.example.e.commerce.services.ProductService;
+import e_commerce.com.example.e.commerce.services.SemanticSearchService;
+import e_commerce.com.example.e.commerce.services.HybridSearchService;
 import e_commerce.com.example.e.commerce.services.CloudinaryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -26,6 +28,12 @@ public class ProductController {
 
     @Autowired
     private ProductService productService;
+
+    @Autowired
+    private SemanticSearchService semanticSearchService;
+
+    @Autowired
+    private HybridSearchService hybridSearchService;
 
     @Autowired
     private CloudinaryService cloudinaryService;
@@ -60,6 +68,63 @@ public class ProductController {
             return new ResponseEntity<>(productService.getProductsByPage(page, pageSize), HttpStatus.ACCEPTED);
         }
         return new ResponseEntity<>(productService.getAllProductsDTO(), HttpStatus.ACCEPTED);
+    }
+
+    @GetMapping({"/products/hybrid-search", "/api/products/hybrid-search"})
+    public ResponseEntity<?> hybridSearch(
+            @RequestParam String query,
+            @RequestParam(required = false, defaultValue = "0") Integer page,
+            @RequestParam(required = false, defaultValue = "48") Integer limit) {
+        
+        if (query == null || query.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Query parameter cannot be empty"));
+        }
+        
+        if (page < 0) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Page cannot be negative"));
+        }
+        
+        if (limit <= 0 || limit > 100) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Limit must be between 1 and 100"));
+        }
+
+        try {
+            List<Product> products = hybridSearchService.search(query, page, limit);
+            
+            List<ProductCardDTO> responseDtos = products.stream()
+                    .map(productService::convertToDTO)
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(responseDtos);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new MessageResponse("Failed to perform hybrid search: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping({"/products/semantic-search", "/api/products/semantic-search"})
+    public ResponseEntity<?> semanticSearch(
+            @RequestParam String query,
+            @RequestParam(required = false, defaultValue = "10") Integer limit) {
+        
+        if (query == null || query.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Query parameter cannot be empty"));
+        }
+
+        try {
+            List<Product> products = semanticSearchService.search(query, limit);
+            
+            // Map the raw Product entities to the existing ProductCardDTO 
+            // so we don't expose embeddings or sensitive info, matching existing API conventions
+            List<ProductCardDTO> responseDtos = products.stream()
+                    .map(productService::convertToDTO)
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(responseDtos);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new MessageResponse("Failed to perform semantic search: " + e.getMessage()));
+        }
     }
 
     @GetMapping("/products/category")

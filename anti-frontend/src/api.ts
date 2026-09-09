@@ -1,7 +1,30 @@
+import axios from 'axios';
 import type { Product, AuthResponse, Address } from './types';
 
-// Spring Boot default port is 8080
 const API_BASE_URL = import.meta.env.VITE_API_URL;
+
+// Axios instance with default config
+export const apiClient = axios.create({
+    baseURL: API_BASE_URL,
+    timeout: 30000,
+    withCredentials: true, // Enables automatic HttpOnly cookie transmission
+});
+
+// Response Interceptor: Format error messages cleanly
+apiClient.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        let message = error.message || 'An unexpected network error occurred';
+        if (error.response && error.response.data) {
+            if (typeof error.response.data === 'string') {
+                message = error.response.data;
+            } else if (error.response.data.message) {
+                message = error.response.data.message;
+            }
+        }
+        return Promise.reject(new Error(message));
+    }
+);
 
 export function sanitizeProduct(product: Product): Product {
     if (!product) return product;
@@ -47,20 +70,12 @@ export function sanitizeProduct(product: Product): Product {
 }
 
 export async function fetchProducts(page?: number, size?: number): Promise<Product[]> {
-    let url = `${API_BASE_URL}/products`;
-    const params = new URLSearchParams();
-    if (page !== undefined) params.append('page', page.toString());
-    if (size !== undefined) params.append('size', size.toString());
-    if (params.toString()) {
-        url += `?${params.toString()}`;
-    }
-    const response = await fetch(url);
+    const params: Record<string, any> = {};
+    if (page !== undefined) params.page = page;
+    if (size !== undefined) params.size = size;
 
-    if (!response.ok) {
-        throw new Error(`Failed to fetch products: ${response.statusText}`);
-    }
-
-    const data = await response.json();
+    const response = await apiClient.get('/products', { params });
+    const data = response.data;
     return Array.isArray(data) ? data.map(sanitizeProduct) : [];
 }
 
@@ -71,18 +86,16 @@ export async function fetchProductsByCategory(category: string, page: number = 0
 
     // 1. Try dedicated category pagination endpoint first
     try {
-        const params = new URLSearchParams({
-            name: category,
-            category: category,
-            page: page.toString(),
-            size: size.toString()
-        });
-        const response = await fetch(`${API_BASE_URL}/products/category?${params.toString()}`);
-        if (response.ok) {
-            const data = await response.json();
-            if (Array.isArray(data) && data.length > 0) {
-                categoryProducts = data.map(sanitizeProduct);
+        const response = await apiClient.get('/products/category', {
+            params: {
+                name: category,
+                category: category,
+                page,
+                size
             }
+        });
+        if (Array.isArray(response.data) && response.data.length > 0) {
+            categoryProducts = response.data.map(sanitizeProduct);
         }
     } catch (err) {
         console.warn('Dedicated category endpoint error:', err);
@@ -93,22 +106,20 @@ export async function fetchProductsByCategory(category: string, page: number = 0
         return categoryProducts.slice(0, size);
     }
 
-    // 2. If strict category match returned fewer items (e.g., 1 product), supplement using search query endpoint
+    // 2. If strict category match returned fewer items, supplement using search query endpoint
     try {
-        const searchRes = await fetch(`${API_BASE_URL}/products?query=${encodeURIComponent(category)}`);
-        if (searchRes.ok) {
-            const searchData = await searchRes.json();
-            if (Array.isArray(searchData) && searchData.length > 0) {
-                const searchProducts = searchData.map(sanitizeProduct);
-                const existingIds = new Set(categoryProducts.map(p => p.id));
-                
-                // Add unique products from search results
-                for (const p of searchProducts) {
-                    if (!existingIds.has(p.id)) {
-                        categoryProducts.push(p);
-                        existingIds.add(p.id);
-                        if (categoryProducts.length >= size) break;
-                    }
+        const searchRes = await apiClient.get('/products', {
+            params: { query: category }
+        });
+        if (Array.isArray(searchRes.data) && searchRes.data.length > 0) {
+            const searchProducts = searchRes.data.map(sanitizeProduct);
+            const existingIds = new Set(categoryProducts.map(p => p.id));
+            
+            for (const p of searchProducts) {
+                if (!existingIds.has(p.id)) {
+                    categoryProducts.push(p);
+                    existingIds.add(p.id);
+                    if (categoryProducts.length >= size) break;
                 }
             }
         }
@@ -120,48 +131,38 @@ export async function fetchProductsByCategory(category: string, page: number = 0
 }
 
 export async function fetchCategories(): Promise<string[]> {
-    const response = await fetch(`${API_BASE_URL}/products/categories`);
-    if (!response.ok) {
-        throw new Error(`Failed to fetch categories: ${response.statusText}`);
-    }
-    const data = await response.json();
-    return Array.isArray(data) ? data : [];
+    const response = await apiClient.get('/products/categories');
+    return Array.isArray(response.data) ? response.data : [];
 }
 
 export async function fetchFeaturedProducts(page: number = 0, size: number = 12): Promise<Product[]> {
     let result: Product[] = [];
 
     try {
-        const params = new URLSearchParams({
-            page: page.toString(),
-            size: size.toString()
+        const response = await apiClient.get('/products/featured', {
+            params: { page, size }
         });
-        const response = await fetch(`${API_BASE_URL}/products/featured?${params.toString()}`);
-        if (response.ok) {
-            const data = await response.json();
-            if (Array.isArray(data) && data.length > 0) {
-                result = data.map(sanitizeProduct);
-            }
+        if (Array.isArray(response.data) && response.data.length > 0) {
+            result = response.data.map(sanitizeProduct);
         }
     } catch (err) {
         console.warn('Backend /products/featured param fetch warning:', err);
     }
 
-    // Fallback: If returned items are fewer than requested size (e.g. 10 items instead of 12), fill from general catalog
+    // Fallback: If returned items are fewer than requested size, fill from general catalog
     if (result.length < size) {
         try {
-            const response = await fetch(`${API_BASE_URL}/products?page=${page}&size=${size}`);
-            if (response.ok) {
-                const data = await response.json();
-                if (Array.isArray(data) && data.length > 0) {
-                    const fallbackItems = data.map(sanitizeProduct);
-                    const existingIds = new Set(result.map(p => p.id));
-                    for (const item of fallbackItems) {
-                        if (result.length >= size) break;
-                        if (!existingIds.has(item.id)) {
-                            result.push(item);
-                            existingIds.add(item.id);
-                        }
+            const response = await apiClient.get('/products', {
+                params: { page, size }
+            });
+            if (Array.isArray(response.data) && response.data.length > 0) {
+                const fallbackItems = response.data.map(sanitizeProduct);
+                const existingIds = new Set(result.map(p => p.id));
+                for (const item of fallbackItems) {
+                    if (result.length >= size) break;
+                    if (!existingIds.has(item.id)) {
+                        result.push(item);
+                        existingIds.add(item.id);
                     }
                 }
             }
@@ -174,713 +175,235 @@ export async function fetchFeaturedProducts(page: number = 0, size: number = 12)
 }
 
 export async function fetchNewArrivals(): Promise<Product[]> {
-    const response = await fetch(`${API_BASE_URL}/products/new-arrivals`);
-    if (!response.ok) {
-        throw new Error(`Failed to fetch new arrivals: ${response.statusText}`);
-    }
-    const data = await response.json();
+    const response = await apiClient.get('/products/new-arrivals');
+    const data = response.data;
     return Array.isArray(data) ? data.slice(0, 15).map(sanitizeProduct) : [];
 }
 
 export async function fetchTopRatedProducts(): Promise<Product[]> {
-    const response = await fetch(`${API_BASE_URL}/products/top-rated`);
-    if (!response.ok) {
-        throw new Error(`Failed to fetch top rated products: ${response.statusText}`);
-    }
-    const data = await response.json();
+    const response = await apiClient.get('/products/top-rated');
+    const data = response.data;
     return Array.isArray(data) ? data.slice(0, 15).map(sanitizeProduct) : [];
 }
 
 export async function fetchMostReviewedProducts(): Promise<Product[]> {
-    const response = await fetch(`${API_BASE_URL}/products/most-reviewed`);
-    if (!response.ok) {
-        throw new Error(`Failed to fetch most reviewed products: ${response.statusText}`);
-    }
-    const data = await response.json();
+    const response = await apiClient.get('/products/most-reviewed');
+    const data = response.data;
     return Array.isArray(data) ? data.slice(0, 15).map(sanitizeProduct) : [];
 }
 
 export async function fetchMostViewedProducts(): Promise<Product[]> {
-    const response = await fetch(`${API_BASE_URL}/products/most-viewed`);
-    if (!response.ok) {
-        throw new Error(`Failed to fetch most viewed products: ${response.statusText}`);
-    }
-    const data = await response.json();
+    const response = await apiClient.get('/products/most-viewed');
+    const data = response.data;
     return Array.isArray(data) ? data.slice(0, 15).map(sanitizeProduct) : [];
 }
 
 export async function loginUser(email: string, password: string): Promise<AuthResponse> {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-    });
-
-    if (!response.ok) {
-        let errorMsg = `Failed to login: ${response.statusText}`;
-        try {
-            const data = await response.json();
-            if (data && data.message) {
-                errorMsg = data.message;
-            }
-        } catch (e) {
-            // ignore
-        }
-        throw new Error(errorMsg);
-    }
-
-    return response.json(); // Parses the response body as JSON
+    const response = await apiClient.post('/auth/login', { email, password });
+    return response.data;
 }
 
 export async function googleLogin(token: string): Promise<AuthResponse> {
-    const response = await fetch(`${API_BASE_URL}/auth/google`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ idToken: token }),
-    });
-
-    if (!response.ok) {
-        let errorMsg = `Failed to login with Google: ${response.statusText}`;
-        try {
-            const data = await response.json();
-            if (data && data.message) {
-                errorMsg = data.message;
-            }
-        } catch (e) {
-            // ignore
-        }
-        throw new Error(errorMsg);
-    }
-
-    return response.json();
+    const response = await apiClient.post('/auth/google', { idToken: token });
+    return response.data;
 }
 
-
 export async function registerUser(name: string, email: string, password: string, role: string): Promise<AuthResponse> {
-    const response = await fetch(`${API_BASE_URL}/auth/register`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name, email, password, role }),
-    });
-
-    if (!response.ok) {
-        let errorMsg = `Failed to register: ${response.statusText}`;
-        try {
-            const data = await response.json();
-            if (data && data.message) {
-                errorMsg = data.message;
-            }
-        } catch (e) {
-            // ignore
-        }
-        throw new Error(errorMsg);
-    }
-
-    return response.json(); // Parses the response body as JSON
+    const response = await apiClient.post('/auth/register', { name, email, password, role });
+    return response.data;
 }
 
 export async function verifyOtp(email: string, otp: string): Promise<AuthResponse> {
-    const response = await fetch(`${API_BASE_URL}/auth/verify-otp`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, otp }),
-    });
-
-    if (!response.ok) {
-        let errorMsg = `Failed to verify code: ${response.statusText}`;
-        try {
-            const data = await response.json();
-            if (data && data.message) {
-                errorMsg = data.message;
-            }
-        } catch (e) {
-            // ignore
-        }
-        throw new Error(errorMsg);
-    }
-
-    return response.json();
+    const response = await apiClient.post('/auth/verify-otp', { email, otp });
+    return response.data;
 }
 
 export async function resendOtp(email: string): Promise<{ message: string }> {
-    const response = await fetch(`${API_BASE_URL}/auth/resend-otp`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-    });
-
-    if (!response.ok) {
-        let errorMsg = `Failed to resend code: ${response.statusText}`;
-        try {
-            const data = await response.json();
-            if (data && data.message) {
-                errorMsg = data.message;
-            }
-        } catch (e) {
-            // ignore
-        }
-        throw new Error(errorMsg);
-    }
-
-    return response.json();
+    const response = await apiClient.post('/auth/resend-otp', { email });
+    return response.data;
 }
 
 export async function forgotPassword(email: string): Promise<{ message: string }> {
-    const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-    });
-
-    if (!response.ok) {
-        let errorMsg = `Failed to request password reset: ${response.statusText}`;
-        try {
-            const data = await response.json();
-            if (data && data.message) {
-                errorMsg = data.message;
-            }
-        } catch (e) {
-            // ignore
-        }
-        throw new Error(errorMsg);
-    }
-
-    return response.json();
+    const response = await apiClient.post('/auth/forgot-password', { email });
+    return response.data;
 }
 
 export async function resetPassword(email: string, otp: string, newPassword: string): Promise<AuthResponse> {
-    const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, otp, newPassword }),
-    });
-
-    if (!response.ok) {
-        let errorMsg = `Failed to reset password: ${response.statusText}`;
-        try {
-            const data = await response.json();
-            if (data && data.message) {
-                errorMsg = data.message;
-            }
-        } catch (e) {
-            // ignore
-        }
-        throw new Error(errorMsg);
-    }
-
-    return response.json();
+    const response = await apiClient.post('/auth/reset-password', { email, otp, newPassword });
+    return response.data;
 }
 
-export async function createProduct(product:Omit<Product,"id"> ): Promise<Product> {
-
-    const token = localStorage.getItem('jwt_token');
-    if (!token) {
-        throw new Error('No jwt token found');
-    }   
-
-    console.log(product)
-    
-    const response = await fetch(`${API_BASE_URL}/products`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(product),
-    });
-
-    if (!response.ok) {
-        throw new Error(`Failed to create product: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return sanitizeProduct(data);
-}   
-
-
-export async function updateProduct(product:Product): Promise<Product> {
-    
-    const token = localStorage.getItem('jwt_token');
-    if (!token) {
-        throw new Error('No jwt token found');
-    }
-
-    console.log(product)
-
-    const response = await fetch(`${API_BASE_URL}/products/${product.id}`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(product),
-    });
-
-    if (!response.ok) {
-        throw new Error(`Failed to update product: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return sanitizeProduct(data);
+export async function createProduct(product: Omit<Product, "id">): Promise<Product> {
+    const response = await apiClient.post('/products', product);
+    return sanitizeProduct(response.data);
 }
-export async function deleteProduct(id:number): Promise<void> {
-    
-    const token = localStorage.getItem('jwt_token');
-    if (!token) {
-        throw new Error('No jwt token found');
-    }
 
-    console.log(id)
+export async function updateProduct(product: Product): Promise<Product> {
+    const response = await apiClient.put(`/products/${product.id}`, product);
+    return sanitizeProduct(response.data);
+}
 
-    const response = await fetch(`${API_BASE_URL}/products/${id}`, {
-        method: 'DELETE',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-        },
-    });
-
-    if (!response.ok) {
-        throw new Error(`Failed to Delete Product: ${response.statusText}`);
-    }
-
-    // Handle potential empty or JSON responses
-    const contentType = response.headers.get('content-type');
-    if (contentType && contentType.includes('application/json')) {
-        return response.json();
-    }
+export async function deleteProduct(id: number): Promise<void> {
+    const response = await apiClient.delete(`/products/${id}`);
+    return response.data;
 }
 
 export async function fetchCart(): Promise<any> {
-    const token = localStorage.getItem('jwt_token');
-    if (!token) throw new Error('No jwt token found');
-
-    const response = await fetch(`${API_BASE_URL}/api/cart`, {
-        headers: {
-            'Authorization': `Bearer ${token}`,
-        },
-    });
-    if (!response.ok) {
-        throw new Error(`Failed to fetch cart: ${response.statusText}`);
-    }
-    return response.json();
+    const response = await apiClient.get('/api/cart');
+    return response.data;
 }
 
 export async function addToBackendCart(productId: number, quantity: number): Promise<any> {
-    const token = localStorage.getItem('jwt_token');
-    if (!token) throw new Error('No jwt token found');
-
-    const response = await fetch(`${API_BASE_URL}/api/cart/add`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ productId, quantity }),
-    });
-    if (!response.ok) {
-        throw new Error(`Failed to add to cart: ${response.statusText}`);
-    }
-    return response.json();
+    const response = await apiClient.post('/api/cart/add', { productId, quantity });
+    return response.data;
 }
 
 export async function updateBackendCartItem(productId: number, quantity: number): Promise<any> {
-    const token = localStorage.getItem('jwt_token');
-    if (!token) throw new Error('No jwt token found');
-
-    const response = await fetch(`${API_BASE_URL}/api/cart/update`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ productId, quantity }),
-    });
-    if (!response.ok) {
-        throw new Error(`Failed to update cart: ${response.statusText}`);
-    }
-    return response.json();
+    const response = await apiClient.put('/api/cart/update', { productId, quantity });
+    return response.data;
 }
 
 export async function removeFromBackendCart(productId: number): Promise<any> {
-    const token = localStorage.getItem('jwt_token');
-    if (!token) throw new Error('No jwt token found');
-
-    const response = await fetch(`${API_BASE_URL}/api/cart/remove/${productId}`, {
-        method: 'DELETE',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-        },
-    });
-    if (!response.ok) {
-        throw new Error(`Failed to remove from cart: ${response.statusText}`);
-    }
-    return response.json();
+    const response = await apiClient.delete(`/api/cart/remove/${productId}`);
+    return response.data;
 }
 
 export async function checkoutBackendCart(addressId: number): Promise<any> {
-    const token = localStorage.getItem('jwt_token');
-    if (!token) throw new Error('No jwt token found');
-
-    const response = await fetch(`${API_BASE_URL}/api/orders/checkout?addressId=${addressId}`, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-        },
+    const response = await apiClient.post(`/api/orders/checkout`, null, {
+        params: { addressId }
     });
-    if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(errText || `Failed to checkout: ${response.statusText}`);
-    }
-    return response.json();
+    return response.data;
 }
 
 export async function fetchBackendOrders(): Promise<any[]> {
-    const token = localStorage.getItem('jwt_token');
-    if (!token) throw new Error('No jwt token found');
-
-    const response = await fetch(`${API_BASE_URL}/api/orders`, {
-        headers: {
-            'Authorization': `Bearer ${token}`,
-        },
-    });
-    if (!response.ok) {
-        throw new Error(`Failed to fetch orders: ${response.statusText}`);
-    }
-    return response.json();
+    const response = await apiClient.get('/api/orders');
+    return response.data;
 }
 
 export async function searchProducts(query: string): Promise<Product[]> {
-    const response = await fetch(`${API_BASE_URL}/products?query=${encodeURIComponent(query)}`);
-
-    if (!response.ok) {
-        throw new Error(`Failed to search products: ${response.statusText}`);
-    }
-
-    const data = await response.json();
+    const response = await apiClient.get('/products', {
+        params: { query }
+    });
+    const data = response.data;
     return Array.isArray(data) ? data.map(sanitizeProduct) : [];
 }
 
 export async function fetchSearchSuggestions(query: string): Promise<string[]> {
-    const response = await fetch(`${API_BASE_URL}/products/suggestions?query=${encodeURIComponent(query)}`);
-
-    if (!response.ok) {
-        throw new Error(`Failed to fetch search suggestions: ${response.statusText}`);
-    }
-
-    return response.json();
+    const response = await apiClient.get('/products/suggestions', {
+        params: { query }
+    });
+    return response.data;
 }
 
 export async function fetchFavorites(): Promise<Product[]> {
-    const token = localStorage.getItem('jwt_token');
-    if (!token) throw new Error('No jwt token found');
-
-    const response = await fetch(`${API_BASE_URL}/api/favorites`, {
-        headers: {
-            'Authorization': `Bearer ${token}`,
-        },
-    });
-    if (!response.ok) {
-        throw new Error(`Failed to fetch favorites: ${response.statusText}`);
-    }
-    const data = await response.json();
+    const response = await apiClient.get('/api/favorites');
+    const data = response.data;
     return Array.isArray(data) ? data.map(sanitizeProduct) : [];
 }
 
 export async function addFavoriteToBackend(productId: number): Promise<Product[]> {
-    const token = localStorage.getItem('jwt_token');
-    if (!token) throw new Error('No jwt token found');
-
-    const response = await fetch(`${API_BASE_URL}/api/favorites/add/${productId}`, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-        },
-    });
-    if (!response.ok) {
-        throw new Error(`Failed to add favorite: ${response.statusText}`);
-    }
-    const data = await response.json();
+    const response = await apiClient.post(`/api/favorites/add/${productId}`);
+    const data = response.data;
     return Array.isArray(data) ? data.map(sanitizeProduct) : [];
 }
 
 export async function removeFavoriteFromBackend(productId: number): Promise<Product[]> {
-    const token = localStorage.getItem('jwt_token');
-    if (!token) throw new Error('No jwt token found');
-
-    const response = await fetch(`${API_BASE_URL}/api/favorites/remove/${productId}`, {
-        method: 'DELETE',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-        },
-    });
-    if (!response.ok) {
-        throw new Error(`Failed to remove favorite: ${response.statusText}`);
-    }
-    const data = await response.json();
+    const response = await apiClient.delete(`/api/favorites/remove/${productId}`);
+    const data = response.data;
     return Array.isArray(data) ? data.map(sanitizeProduct) : [];
 }
 
 export async function fetchProductById(id: number): Promise<Product> {
-    const response = await fetch(`${API_BASE_URL}/products/${id}`);
-
-    if (!response.ok) {
-        throw new Error(`Failed to fetch product details: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return sanitizeProduct(data);
+    const response = await apiClient.get(`/products/${id}`);
+    return sanitizeProduct(response.data);
 }
 
 export async function fetchSellerProducts(): Promise<Product[]> {
-    const token = localStorage.getItem('jwt_token');
-    if (!token) throw new Error('No jwt token found');
-
-    const response = await fetch(`${API_BASE_URL}/seller/products`, {
-        headers: {
-            'Authorization': `Bearer ${token}`,
-        },
-    });
-    if (!response.ok) {
-        throw new Error(`Failed to fetch seller products: ${response.statusText}`);
-    }
-    const data = await response.json();
+    const response = await apiClient.get('/seller/products');
+    const data = response.data;
     return Array.isArray(data) ? data.map(sanitizeProduct) : [];
 }
 
 export async function fetchSellerSales(): Promise<any[]> {
-    const token = localStorage.getItem('jwt_token');
-    if (!token) throw new Error('No jwt token found');
-
-    const response = await fetch(`${API_BASE_URL}/seller/sales`, {
-        headers: {
-            'Authorization': `Bearer ${token}`,
-        },
-    });
-    if (!response.ok) {
-        throw new Error(`Failed to fetch seller sales: ${response.statusText}`);
-    }
-    return response.json();
+    const response = await apiClient.get('/seller/sales');
+    return response.data;
 }
 
 export async function fetchSellerRevenue(): Promise<{ revenue: number }> {
-    const token = localStorage.getItem('jwt_token');
-    if (!token) throw new Error('No jwt token found');
-
-    const response = await fetch(`${API_BASE_URL}/seller/revenue`, {
-        headers: {
-            'Authorization': `Bearer ${token}`,
-        },
-    });
-    if (!response.ok) {
-        throw new Error(`Failed to fetch seller revenue: ${response.statusText}`);
-    }
-    return response.json();
+    const response = await apiClient.get('/seller/revenue');
+    return response.data;
 }
 
 export async function uploadProductImage(file: File): Promise<string> {
-    const token = localStorage.getItem('jwt_token');
-    const headers: Record<string, string> = {};
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-
     const formData = new FormData();
     formData.append('image', file);
 
-    const response = await fetch(`${API_BASE_URL}/upload`, {
-        method: 'POST',
-        headers: headers,
-        body: formData,
+    const response = await apiClient.post('/upload', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
     });
-
-    if (!response.ok) {
-        throw new Error(`Failed to upload image: ${response.statusText}`);
-    }
-
-    return response.text();
+    return response.data;
 }
 
 export async function fetchAddresses(): Promise<Address[]> {
-    const token = localStorage.getItem('jwt_token');
-    if (!token) throw new Error('No jwt token found');
-
-    const response = await fetch(`${API_BASE_URL}/api/address`, {
-        headers: {
-            'Authorization': `Bearer ${token}`,
-        },
-    });
-    if (!response.ok) {
-        throw new Error(`Failed to fetch addresses: ${response.statusText}`);
-    }
-    return response.json();
+    const response = await apiClient.get('/api/address');
+    return response.data;
 }
 
 export async function saveAddress(address: Address): Promise<Address> {
-    const token = localStorage.getItem('jwt_token');
-    if (!token) throw new Error('No jwt token found');
-
-    const response = await fetch(`${API_BASE_URL}/api/address`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(address),
-    });
-    if (!response.ok) {
-        throw new Error(`Failed to save address: ${response.statusText}`);
-    }
-    return response.json();
+    const response = await apiClient.post('/api/address', address);
+    return response.data;
 }
 
 export async function updateAddress(id: number, address: Address): Promise<Address> {
-    const token = localStorage.getItem('jwt_token');
-    if (!token) throw new Error('No jwt token found');
-
-    const response = await fetch(`${API_BASE_URL}/api/address/${id}`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(address),
-    });
-    if (!response.ok) {
-        throw new Error(`Failed to update address: ${response.statusText}`);
-    }
-    return response.json();
+    const response = await apiClient.put(`/api/address/${id}`, address);
+    return response.data;
 }
 
 export async function deleteAddress(id: number): Promise<any> {
-    const token = localStorage.getItem('jwt_token');
-    if (!token) throw new Error('No jwt token found');
-
-    const response = await fetch(`${API_BASE_URL}/api/address/${id}`, {
-        method: 'DELETE',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-        },
-    });
-    if (!response.ok) {
-        throw new Error(`Failed to delete address: ${response.statusText}`);
-    }
-    return response.json();
+    const response = await apiClient.delete(`/api/address/${id}`);
+    return response.data;
 }
 
 export async function setDefaultAddress(id: number): Promise<Address> {
-    const token = localStorage.getItem('jwt_token');
-    if (!token) throw new Error('No jwt token found');
-
-    const response = await fetch(`${API_BASE_URL}/api/address/${id}/default`, {
-        method: 'PUT',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-        },
-    });
-    if (!response.ok) {
-        throw new Error(`Failed to set default address: ${response.statusText}`);
-    }
-    return response.json();
+    const response = await apiClient.put(`/api/address/${id}/default`);
+    return response.data;
 }
 
 export async function requestCancelOrder(orderId: number): Promise<any> {
-    const token = localStorage.getItem('jwt_token');
-    if (!token) throw new Error('No jwt token found');
-
-    const response = await fetch(`${API_BASE_URL}/api/orders/${orderId}/cancel-request`, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-        },
-    });
-
-    if (!response.ok) {
-        let errorMsg = `Failed to request cancellation: ${response.statusText}`;
-        try {
-            const txt = await response.text();
-            if (txt) errorMsg = txt;
-        } catch (e) {
-            // ignore
-        }
-        throw new Error(errorMsg);
-    }
-
-    return response.text();
+    const response = await apiClient.post(`/api/orders/${orderId}/cancel-request`);
+    return response.data;
 }
 
 export async function confirmCancelOrder(orderId: number, otp: string): Promise<any> {
-    const token = localStorage.getItem('jwt_token');
-    if (!token) throw new Error('No jwt token found');
-
-    const response = await fetch(`${API_BASE_URL}/api/orders/${orderId}/cancel-confirm?otp=${encodeURIComponent(otp)}`, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-        },
+    const response = await apiClient.post(`/api/orders/${orderId}/cancel-confirm`, null, {
+        params: { otp }
     });
-
-    if (!response.ok) {
-        let errorMsg = `Failed to confirm cancellation: ${response.statusText}`;
-        try {
-            const txt = await response.text();
-            if (txt) errorMsg = txt;
-        } catch (e) {
-            // ignore
-        }
-        throw new Error(errorMsg);
-    }
-
-    return response.text();
+    return response.data;
 }
 
 export async function fetchProductReviews(productId: number): Promise<any[]> {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/reviews/products/${productId}`);
-        if (!response.ok) return [];
-        return await response.json();
+        const response = await apiClient.get(`/api/reviews/products/${productId}`);
+        return Array.isArray(response.data) ? response.data : [];
     } catch (e) {
         return [];
     }
 }
 
 export async function createProductReview(productId: number, rating: number, comment: string): Promise<any> {
-    const token = localStorage.getItem('jwt_token');
-    if (!token) throw new Error('Please login to submit a review.');
+    const response = await apiClient.post(`/api/reviews/products/${productId}`, { rating, comment });
+    return response.data;
+}
 
-    const response = await fetch(`${API_BASE_URL}/api/reviews/products/${productId}`, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ rating, comment })
-    });
-
-    if (!response.ok) {
-        let errorMsg = 'Failed to submit review.';
-        try {
-            const errData = await response.json();
-            if (errData && errData.message) errorMsg = errData.message;
-        } catch (e) {
-            const txt = await response.text();
-            if (txt) errorMsg = txt;
-        }
-        throw new Error(errorMsg);
+export async function logoutUser(): Promise<{ message: string }> {
+    try {
+        const response = await apiClient.post('/auth/logout');
+        localStorage.removeItem('jwt_token');
+        return response.data;
+    } catch (e) {
+        localStorage.removeItem('jwt_token');
+        return { message: 'Logged out' };
     }
-
-    return response.json();
 }

@@ -17,10 +17,12 @@ import java.util.List;
 public class AdminController {
 
     private final AdminService adminService;
+    private final e_commerce.com.example.e.commerce.services.ProductService productService;
 
     @Autowired
-    public AdminController(AdminService adminService) {
+    public AdminController(AdminService adminService, e_commerce.com.example.e.commerce.services.ProductService productService) {
         this.adminService = adminService;
+        this.productService = productService;
     }
 
     @GetMapping("/users")
@@ -46,5 +48,11 @@ public class AdminController {
     @GetMapping("/sales")
     public ResponseEntity<SalesAnalyticsResponse> getSalesAnalytics() {
         return ResponseEntity.ok(adminService.getSalesAnalytics());
+    }
+
+    @PostMapping("/products/backfill-embeddings")
+    public ResponseEntity<String> backfillEmbeddings(@RequestParam(defaultValue = "100") int batchSize) {
+        int processedCount = productService.backfillEmbeddings(batchSize);
+        return ResponseEntity.ok("Successfully processed " + processedCount + " products.");
     }
 }
