@@ -5,6 +5,7 @@ import e_commerce.com.example.e.commerce.services.ProductService;
 import e_commerce.com.example.e.commerce.services.SemanticSearchService;
 import e_commerce.com.example.e.commerce.services.HybridSearchService;
 import e_commerce.com.example.e.commerce.services.CloudinaryService;
+import e_commerce.com.example.e.commerce.services.ProductRecommendationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -37,6 +38,9 @@ public class ProductController {
 
     @Autowired
     private CloudinaryService cloudinaryService;
+
+    @Autowired
+    private ProductRecommendationService productRecommendationService;
 
     @Autowired
     private UserService userService;
@@ -110,12 +114,14 @@ public class ProductController {
         if (query == null || query.trim().isEmpty()) {
             return ResponseEntity.badRequest().body(new MessageResponse("Query parameter cannot be empty"));
         }
+        
+        if (limit <= 0 || limit > 100) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Limit must be between 1 and 100"));
+        }
 
         try {
             List<Product> products = semanticSearchService.search(query, limit);
             
-            // Map the raw Product entities to the existing ProductCardDTO 
-            // so we don't expose embeddings or sensitive info, matching existing API conventions
             List<ProductCardDTO> responseDtos = products.stream()
                     .map(productService::convertToDTO)
                     .collect(Collectors.toList());
@@ -124,6 +130,27 @@ public class ProductController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new MessageResponse("Failed to perform semantic search: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping({"/products/{productId}/similar", "/api/products/{productId}/similar"})
+    public ResponseEntity<?> getSimilarProducts(
+            @PathVariable Long productId,
+            @RequestParam(required = false, defaultValue = "8") Integer limit) {
+        
+        try {
+            List<Product> products = productRecommendationService.getSimilarProducts(productId, limit);
+            
+            List<ProductCardDTO> responseDtos = products.stream()
+                    .map(productService::convertToDTO)
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(responseDtos);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(new MessageResponse(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new MessageResponse("Failed to fetch similar products: " + e.getMessage()));
         }
     }
 

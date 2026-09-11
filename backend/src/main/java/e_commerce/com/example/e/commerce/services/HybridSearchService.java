@@ -18,9 +18,13 @@ public class HybridSearchService {
     private ProductEmbeddingService embeddingService;
 
     // Configurable parameters
-    private static final int CANDIDATE_MULTIPLIER = 3;
+    private static int CANDIDATE_MULTIPLIER = 3;
     private static final double RRF_K = 60.0;
     private static final int MAX_FETCH_LIMIT = 500; // Hard limit to protect DB
+
+    public static void setCandidateMultiplier(int multiplier) {
+        CANDIDATE_MULTIPLIER = multiplier;
+    }
 
     public List<Product> search(String query, int page, int limit) {
         if (query == null || query.trim().isEmpty()) {

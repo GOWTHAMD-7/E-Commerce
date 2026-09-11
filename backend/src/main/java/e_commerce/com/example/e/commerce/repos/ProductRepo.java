@@ -25,6 +25,19 @@ public interface ProductRepo extends JpaRepository<Product, Long> {
         return findSimilarProductsNative(arrayString, limit);
     }
 
+    @Query(value = "SELECT * FROM product " +
+            "WHERE embedding IS NOT NULL " +
+            "AND coalesce(is_active, true) = true " +
+            "AND id <> :productId " +
+            "ORDER BY embedding <=> cast(:queryEmbedding as vector) " +
+            "LIMIT :limit", nativeQuery = true)
+    List<Product> findRecommendationsNative(@Param("queryEmbedding") String queryEmbedding, @Param("productId") Long productId, @Param("limit") int limit);
+
+    default List<Product> findRecommendations(float[] embedding, Long productId, int limit) {
+        String arrayString = java.util.Arrays.toString(embedding);
+        return findRecommendationsNative(arrayString, productId, limit);
+    }
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT p FROM Product p WHERE p.id = :id")
     Optional<Product> findByIdForUpdate(@Param("id") Long id);
