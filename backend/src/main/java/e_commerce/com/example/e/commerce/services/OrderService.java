@@ -27,6 +27,7 @@ public class OrderService {
     private final AddressRepository addressRepository;
     private final VerificationTokenRepository verificationTokenRepository;
     private final EmailService emailService;
+    private final UserInteractionService userInteractionService;
 
     @Autowired
     public OrderService(OrderRepository orderRepository, 
@@ -35,7 +36,8 @@ public class OrderService {
                         UserRepository userRepository, 
                         AddressRepository addressRepository,
                         VerificationTokenRepository verificationTokenRepository,
-                        EmailService emailService) {
+                        EmailService emailService,
+                        UserInteractionService userInteractionService) {
         this.orderRepository = orderRepository;
         this.cartService = cartService;
         this.productRepo = productRepo;
@@ -43,6 +45,7 @@ public class OrderService {
         this.addressRepository = addressRepository;
         this.verificationTokenRepository = verificationTokenRepository;
         this.emailService = emailService;
+        this.userInteractionService = userInteractionService;
     }
 
     public Order checkout(String email, Long addressId) {
@@ -108,6 +111,11 @@ public class OrderService {
 
         // Clear user's cart
         cartService.clearCart(cart);
+        
+        // Record PURCHASE interactions
+        for (OrderItem orderItem : savedOrder.getOrderItems()) {
+            userInteractionService.recordInteraction(user, orderItem.getProduct(), InteractionType.PURCHASE, null);
+        }
 
         // Trigger order confirmation email
         try {

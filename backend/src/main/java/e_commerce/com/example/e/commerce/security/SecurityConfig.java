@@ -34,7 +34,7 @@ public class SecurityConfig {
 						.requestMatchers("/auth/**", "/home", "/v3/api-docs", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/upload").permitAll()
 						.requestMatchers("/actuator/health", "/actuator/metrics/**", "/actuator/prometheus").permitAll()
 						.requestMatchers(HttpMethod.POST, "/admin/products/backfill-embeddings").permitAll()
-						.requestMatchers(HttpMethod.GET, "/products", "/products/**", "/api/products/**", "/api/reviews/products/**").permitAll()
+						.requestMatchers(HttpMethod.GET, "/products", "/products/**", "/api/products/**", "/api/reviews/products/**", "/api/recommendations").permitAll()
 						.requestMatchers(HttpMethod.POST, "/products", "/products/**").hasAnyRole("SELLER", "ADMIN")
 						.requestMatchers(HttpMethod.PUT, "/products", "/products/**").hasAnyRole("SELLER", "ADMIN")
 						.requestMatchers(HttpMethod.DELETE, "/products", "/products/**").hasAnyRole("SELLER", "ADMIN")

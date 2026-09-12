@@ -1,5 +1,6 @@
 package e_commerce.com.example.e.commerce.services;
 
+import e_commerce.com.example.e.commerce.models.InteractionType;
 import e_commerce.com.example.e.commerce.models.Product;
 import e_commerce.com.example.e.commerce.models.ProductCart;
 import e_commerce.com.example.e.commerce.models.ProductSet;
@@ -21,12 +22,14 @@ public class CartService {
     private final ProductCartRepository cartRepository;
     private final ProductRepo productRepo;
     private final UserRepository userRepository;
+    private final UserInteractionService userInteractionService;
 
     @Autowired
-    public CartService(ProductCartRepository cartRepository, ProductRepo productRepo, UserRepository userRepository) {
+    public CartService(ProductCartRepository cartRepository, ProductRepo productRepo, UserRepository userRepository, UserInteractionService userInteractionService) {
         this.cartRepository = cartRepository;
         this.productRepo = productRepo;
         this.userRepository = userRepository;
+        this.userInteractionService = userInteractionService;
     }
 
     public ProductCart getCartForUser(String email) {
@@ -100,9 +103,12 @@ public class CartService {
             cart.getCart().add(newItem);
         }
 
-        return cartRepository.save(cart);
+        ProductCart savedCart = cartRepository.save(cart);
+        
+        userInteractionService.recordInteraction(cart.getUser(), product, InteractionType.CART, null);
+        
+        return savedCart;
     }
-
     public ProductCart updateCartItem(String email, Long productId, int quantity) {
         ProductCart cart = getCartForUser(email);
 

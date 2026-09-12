@@ -6,6 +6,9 @@ import e_commerce.com.example.e.commerce.services.SemanticSearchService;
 import e_commerce.com.example.e.commerce.services.HybridSearchService;
 import e_commerce.com.example.e.commerce.services.CloudinaryService;
 import e_commerce.com.example.e.commerce.services.ProductRecommendationService;
+import e_commerce.com.example.e.commerce.services.UserInteractionService;
+import e_commerce.com.example.e.commerce.models.InteractionType;
+import e_commerce.com.example.e.commerce.models.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -44,6 +47,9 @@ public class ProductController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private UserInteractionService userInteractionService;
 
     private String getLoggedInUserEmail() {
         org.springframework.security.core.Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -93,6 +99,15 @@ public class ProductController {
         }
 
         try {
+            // Track user interaction for SEARCH
+            String email = getLoggedInUserEmail();
+            if (email != null) {
+                User user = userService.findByEmail(email);
+                if (user != null) {
+                    userInteractionService.recordInteraction(user, null, InteractionType.SEARCH, query.trim());
+                }
+            }
+
             List<Product> products = hybridSearchService.search(query, page, limit);
             
             List<ProductCardDTO> responseDtos = products.stream()
@@ -216,6 +231,16 @@ public class ProductController {
         if (product == null) {
             return ResponseEntity.notFound().build();
         }
+        
+        // Track user interaction for VIEW
+        String email = getLoggedInUserEmail();
+        if (email != null) {
+            User user = userService.findByEmail(email);
+            if (user != null) {
+                userInteractionService.recordInteraction(user, product, InteractionType.VIEW, null);
+            }
+        }
+        
         return ResponseEntity.ok(product);
     }
 

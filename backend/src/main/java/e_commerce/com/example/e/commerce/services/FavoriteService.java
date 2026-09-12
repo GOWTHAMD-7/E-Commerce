@@ -1,5 +1,6 @@
 package e_commerce.com.example.e.commerce.services;
 
+import e_commerce.com.example.e.commerce.models.InteractionType;
 import e_commerce.com.example.e.commerce.models.Product;
 import e_commerce.com.example.e.commerce.models.User;
 import e_commerce.com.example.e.commerce.repos.ProductRepo;
@@ -16,11 +17,13 @@ public class FavoriteService {
 
     private final UserRepository userRepository;
     private final ProductRepo productRepo;
+    private final UserInteractionService userInteractionService;
 
     @Autowired
-    public FavoriteService(UserRepository userRepository, ProductRepo productRepo) {
+    public FavoriteService(UserRepository userRepository, ProductRepo productRepo, UserInteractionService userInteractionService) {
         this.userRepository = userRepository;
         this.productRepo = productRepo;
+        this.userInteractionService = userInteractionService;
     }
 
     public Set<Product> getFavoritesForUser(String email) {
@@ -37,6 +40,9 @@ public class FavoriteService {
         
         user.getFavorites().add(product);
         userRepository.save(user);
+        
+        userInteractionService.recordInteraction(user, product, InteractionType.WISHLIST, null);
+        
         return user.getFavorites();
     }
 

@@ -38,6 +38,28 @@ public interface ProductRepo extends JpaRepository<Product, Long> {
         return findRecommendationsNative(arrayString, productId, limit);
     }
 
+    @Query(value = "SELECT id, (1 - (embedding <=> cast(:queryEmbedding as vector))) as similarity " +
+            "FROM product " +
+            "WHERE embedding IS NOT NULL " +
+            "AND coalesce(is_active, true) = true " +
+            "AND seller_id IS DISTINCT FROM :userId " +
+            "AND (coalesce(:excludedIds, null) IS NULL OR id NOT IN (:excludedIds)) " +
+            "ORDER BY embedding <=> cast(:queryEmbedding as vector) " +
+            "LIMIT :limit", nativeQuery = true)
+    List<CandidateProjection> findPersonalizedCandidatesNative(
+            @Param("queryEmbedding") String queryEmbedding,
+            @Param("userId") Long userId,
+            @Param("excludedIds") List<Long> excludedIds,
+            @Param("limit") int limit);
+
+    default List<CandidateProjection> findPersonalizedCandidates(float[] embedding, Long userId, List<Long> excludedIds, int limit) {
+        String arrayString = java.util.Arrays.toString(embedding);
+        // Spring Data JPA native queries handle empty collections for IN clauses poorly sometimes, 
+        // passing a dummy value like -1L if empty prevents SQL syntax errors.
+        List<Long> safeExcludedIds = (excludedIds == null || excludedIds.isEmpty()) ? List.of(-1L) : excludedIds;
+        return findPersonalizedCandidatesNative(arrayString, userId, safeExcludedIds, limit);
+    }
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT p FROM Product p WHERE p.id = :id")
     Optional<Product> findByIdForUpdate(@Param("id") Long id);
@@ -69,6 +91,8 @@ public interface ProductRepo extends JpaRepository<Product, Long> {
 
     @Query("SELECT DISTINCT p.category FROM Product p WHERE p.category IS NOT NULL")
     List<String> findDistinctCategories();
+
+    List<Product> findByIsActiveTrue();
 
     @Query(value = 
         "SELECT *, ts_rank(" +
