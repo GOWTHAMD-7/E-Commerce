@@ -26,11 +26,14 @@ import {
   fetchMostViewedProducts,
   requestCancelOrder,
   confirmCancelOrder,
-  fetchCategories
+  fetchCategories,
+  fetchRecommendations
 } from './api';
 import type { Product, CartItem, Order, Address } from './types';
 import { AuthContext } from './context/AuthContext';
 import LoginForm from './components/LoginForm';
+import ProductCard from './components/ProductCard';
+import SkeletonCard from './components/SkeletonCard';
 import ProductList from './components/ProductList';
 import HeroCarousel from './components/HeroCarousel';
 import ProductDetails from './components/ProductDetails';
@@ -130,6 +133,12 @@ export default function App() {
   const [mostViewed, setMostViewed] = useState<Product[]>([]);
   const [sectionsLoading, setSectionsLoading] = useState<boolean>(true);
 
+  // Recommendations State
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [recommendations, setRecommendations] = useState<Product[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [recommendationsLoading, setRecommendationsLoading] = useState(false);
+
   // Shopping Cart States
   const [cart, setCart] = useState<CartItem[]>([]);
 
@@ -212,22 +221,26 @@ export default function App() {
     const fetchSections = async () => {
       try {
         setSectionsLoading(true);
-        const [featuredData, newArrivalsData, topRatedData, mostReviewedData, mostViewedData] = await Promise.all([
+        setRecommendationsLoading(true);
+        const [featuredData, newArrivalsData, topRatedData, mostReviewedData, mostViewedData, recData] = await Promise.all([
           fetchFeaturedProducts(0, 16),
           fetchNewArrivals(),
           fetchTopRatedProducts(),
           fetchMostReviewedProducts(),
-          fetchMostViewedProducts()
+          fetchMostViewedProducts(),
+          fetchRecommendations(10)
         ]);
         setFeaturedProducts(featuredData);
         setNewArrivals(newArrivalsData);
         setTopRated(topRatedData);
         setMostReviewed(mostReviewedData);
         setMostViewed(mostViewedData);
+        setRecommendations(recData);
       } catch (err) {
         console.error('Failed to fetch homepage sections:', err);
       } finally {
         setSectionsLoading(false);
+        setRecommendationsLoading(false);
       }
     };
     fetchSections();
@@ -959,17 +972,60 @@ export default function App() {
           path="/" 
           element={
             <>
-              {/* Flipkart / Amazon Style Creative Hero Carousel & Category Bubble Bar */}
-              <HeroCarousel 
-                products={products}
-                onSelectCategory={(category) => {
-                  setSearchQuery('');
-                  setActiveCategory(category);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
-              />
+              {(() => {
+                const isSearching = searchQuery.trim() !== '' || activeCategory.trim() !== '';
+                return (
+                  <>
+                    {!isSearching && (
+                      <>
+                        {/* Flipkart / Amazon Style Creative Hero Carousel & Category Bubble Bar */}
+                        <HeroCarousel 
+                          products={products}
+                          onSelectCategory={(category) => {
+                            setSearchQuery('');
+                            setActiveCategory(category);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }}
+                        />
 
-              <ProductList
+                        {(recommendationsLoading || recommendations.length > 0) && (
+                          <section className="mt-8 mb-4">
+                            <div className="flex items-center gap-2 mb-6 px-2">
+                              <span className="text-xl">✨</span>
+                              <h3 className="text-2xl font-black text-[#111113] tracking-tight">Recommended for You</h3>
+                            </div>
+                            <div 
+                              className="flex overflow-x-auto gap-6 pb-4 scrollbar-none snap-x snap-mandatory scroll-smooth px-2 items-stretch"
+                              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                            >
+                              {recommendationsLoading ? (
+                                Array.from({ length: 4 }).map((_, i) => (
+                                  <div key={i} className="min-w-[280px] max-w-[280px] snap-start flex-shrink-0">
+                                    <SkeletonCard />
+                                  </div>
+                                ))
+                              ) : (
+                                recommendations.slice(0, 10).map(product => (
+                                  <div key={product.id} className="min-w-[280px] max-w-[280px] snap-start flex-shrink-0 transition-transform duration-300 hover:-translate-y-1">
+                                    <ProductCard
+                                      product={product}
+                                      isFavorited={favorites.some(f => f.id === product.id)}
+                                      onToggleFavorite={handleToggleFavorite}
+                                      onAddToCart={handleAddToCart}
+                                      currentUser={auth.user}
+                                      onUpdate={() => navigate(`/admin/products`)}
+                                      onDelete={handleDeleteClick}
+                                    />
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          </section>
+                        )}
+                      </>
+                    )}
+
+                    <ProductList
                 products={products}
                 loading={loading}
                 error={error}
@@ -996,7 +1052,10 @@ export default function App() {
                   setActiveCategory(category);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-              />
+                    />
+                  </>
+                );
+              })()}
             </>
           } 
         />

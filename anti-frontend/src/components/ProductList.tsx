@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect } from 'react';
 import type { Product, User } from '../types';
 import ProductCard from './ProductCard';
+import SearchProductRow from './SearchProductRow';
 import SkeletonCard from './SkeletonCard';
 import { fetchProductsByCategory, fetchFeaturedProducts } from '../api';
 import { 
@@ -579,6 +580,7 @@ function FeaturedProductsSection({
 interface PaginatedCatalogViewProps {
   title: string;
   query: string;
+  isTextSearch: boolean;
   allProducts: Product[];
   loading: boolean;
   isFavorited: (id?: number) => boolean;
@@ -592,6 +594,7 @@ interface PaginatedCatalogViewProps {
 function PaginatedCatalogView({
   title,
   query,
+  isTextSearch,
   allProducts,
   loading,
   isFavorited,
@@ -762,8 +765,8 @@ function PaginatedCatalogView({
       </div>
 
       {loading ? (
-        <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 list-none mt-6">
-          {Array.from({ length: 16 }).map((_, i) => (
+        <ul className={isTextSearch ? "flex flex-col gap-6 list-none mt-6" : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 list-none mt-6"}>
+          {Array.from({ length: isTextSearch ? 4 : 16 }).map((_, i) => (
             <li key={i}>
               <SkeletonCard />
             </li>
@@ -776,18 +779,30 @@ function PaginatedCatalogView({
         </div>
       ) : (
         <>
-          <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 list-none mt-6">
+          <ul className={isTextSearch ? "flex flex-col gap-6 list-none mt-6" : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 list-none mt-6"}>
             {displayedProducts.map((product) => (
               <li key={product.id}>
-                <ProductCard
-                  product={product}
-                  isFavorited={isFavorited(product.id)}
-                  onToggleFavorite={onToggleFavorite}
-                  onAddToCart={onAddToCart}
-                  currentUser={currentUser}
-                  onUpdate={onUpdate}
-                  onDelete={onDelete}
-                />
+                {isTextSearch ? (
+                  <SearchProductRow
+                    product={product}
+                    isFavorited={isFavorited(product.id)}
+                    onToggleFavorite={onToggleFavorite}
+                    onAddToCart={onAddToCart}
+                    currentUser={currentUser}
+                    onUpdate={onUpdate}
+                    onDelete={onDelete}
+                  />
+                ) : (
+                  <ProductCard
+                    product={product}
+                    isFavorited={isFavorited(product.id)}
+                    onToggleFavorite={onToggleFavorite}
+                    onAddToCart={onAddToCart}
+                    currentUser={currentUser}
+                    onUpdate={onUpdate}
+                    onDelete={onDelete}
+                  />
+                )}
               </li>
             ))}
           </ul>
@@ -987,6 +1002,7 @@ export default function ProductList({
         <PaginatedCatalogView
           title={catalogTitle}
           query={catalogQuery}
+          isTextSearch={searchQuery.trim() !== ''}
           allProducts={products}
           loading={loading}
           isFavorited={isFavorited}

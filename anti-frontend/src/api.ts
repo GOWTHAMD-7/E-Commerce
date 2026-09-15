@@ -180,11 +180,6 @@ export async function fetchNewArrivals(): Promise<Product[]> {
     return Array.isArray(data) ? data.slice(0, 15).map(sanitizeProduct) : [];
 }
 
-export async function fetchTopRatedProducts(): Promise<Product[]> {
-    const response = await apiClient.get('/products/top-rated');
-    const data = response.data;
-    return Array.isArray(data) ? data.slice(0, 15).map(sanitizeProduct) : [];
-}
 
 export async function fetchMostReviewedProducts(): Promise<Product[]> {
     const response = await apiClient.get('/products/most-reviewed');
@@ -381,6 +376,26 @@ export async function confirmCancelOrder(orderId: number, otp: string): Promise<
         params: { otp }
     });
     return response.data;
+}
+
+export async function fetchTopRatedProducts(limit: number = 24): Promise<Product[]> {
+    try {
+        const res = await apiClient.get(`/api/products/top-rated?limit=${limit}`);
+        return (res.data || []).map(sanitizeProduct);
+    } catch (err: any) {
+        console.error('Error fetching top rated products:', err);
+        return [];
+    }
+}
+
+export async function fetchRecommendations(limit: number = 10): Promise<Product[]> {
+    try {
+        const res = await apiClient.get(`/api/recommendations?limit=${limit}`);
+        return (res.data || []).map(sanitizeProduct);
+    } catch (err: any) {
+        console.error('Error fetching recommendations:', err);
+        return [];
+    }
 }
 
 export async function fetchProductReviews(productId: number): Promise<any[]> {
