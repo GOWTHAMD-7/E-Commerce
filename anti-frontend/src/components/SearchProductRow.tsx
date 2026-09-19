@@ -104,7 +104,7 @@ export default function SearchProductRow({
           </h3>
 
           <div className="mb-4">
-            {renderStars(product.averageRating, product.reviewCount)}
+            {renderStars(product.rating, product.reviewCount)}
           </div>
 
           <p className="text-sm text-slate-500 line-clamp-3 mb-6 leading-relaxed">
@@ -113,19 +113,7 @@ export default function SearchProductRow({
 
           <div className="mt-auto flex flex-col sm:flex-row sm:items-end justify-between gap-4 pt-4 border-t border-slate-100">
             <div className="flex flex-col gap-1">
-              {product.discountPrice ? (
-                <>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-400 line-through font-semibold">${product.price.toFixed(2)}</span>
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-100">
-                      -{Math.round(((product.price - product.discountPrice) / product.price) * 100)}%
-                    </span>
-                  </div>
-                  <span className="text-2xl font-black text-slate-900 tracking-tight">${product.discountPrice.toFixed(2)}</span>
-                </>
-              ) : (
-                <span className="text-2xl font-black text-slate-900 tracking-tight">${product.price.toFixed(2)}</span>
-              )}
+              <span className="text-2xl font-black text-slate-900 tracking-tight">₹{product.price.toFixed(2)}</span>
             </div>
 
             <div className="flex flex-wrap gap-2 w-full sm:w-auto">
