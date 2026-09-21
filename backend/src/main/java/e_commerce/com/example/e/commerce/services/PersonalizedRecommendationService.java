@@ -46,14 +46,17 @@ public class PersonalizedRecommendationService {
             return Collections.emptyList();
         }
 
-        // 1. Build the 384-dimensional preference vector
-        Optional<float[]> preferenceVectorOpt = userPreferenceService.buildUserPreferenceVector(user);
-        if (preferenceVectorOpt.isEmpty()) {
-            // No usable interaction history
-            return Collections.emptyList();
+        // 1. Use the stored (materialized) preference vector — updated every 5 min by scheduler
+        float[] preferenceVector = user.getPreferenceVector();
+
+        if (preferenceVector == null || preferenceVector.length != 384) {
+            // Cold-start fallback: user has no stored vector yet, build it on-demand
+            Optional<float[]> onDemand = userPreferenceService.buildUserPreferenceVector(user);
+            if (onDemand.isEmpty()) {
+                return Collections.emptyList();
+            }
+            preferenceVector = onDemand.get();
         }
-        
-        float[] preferenceVector = preferenceVectorOpt.get();
 
         // 2. Identify products to exclude (e.g., already purchased)
         List<Long> excludedIds = new ArrayList<>();

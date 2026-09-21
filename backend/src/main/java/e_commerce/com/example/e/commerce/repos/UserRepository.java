@@ -11,5 +11,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByGoogleId(String googleId);
     List<User> findByRole(Role role);
     List<User> findByEnabled(boolean enabled);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.data.jpa.repository.Query(
+        value = "UPDATE app_user SET preference_vector = CAST(:vector AS vector) WHERE id = :userId",
+        nativeQuery = true
+    )
+    void updatePreferenceVector(@org.springframework.data.repository.query.Param("userId") Long userId,
+                                @org.springframework.data.repository.query.Param("vector") String vector);
 }
 

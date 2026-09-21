@@ -80,5 +80,14 @@ public class User {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     private java.util.List<Address> addresses = new java.util.ArrayList<>();
-}
 
+    /**
+     * Materialized 384-dim semantic preference vector.
+     * Updated every 5 minutes by PreferenceVectorScheduler from unsynced interactions.
+     * Null for new users who have not yet accumulated enough interactions.
+     */
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.VECTOR)
+    @Column(name = "preference_vector", columnDefinition = "vector(384)")
+    @JsonIgnore
+    private float[] preferenceVector;
+}

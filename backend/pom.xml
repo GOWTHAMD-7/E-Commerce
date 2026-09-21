@@ -96,13 +96,8 @@
 			<artifactId>postgresql</artifactId>
 		</dependency>
 
-		<!-- Source: https://mvnrepository.com/artifact/dev.langchain4j/langchain4j-embeddings-bge-small-en-v15-q -->
-		<dependency>
-			<groupId>dev.langchain4j</groupId>
-			<artifactId>langchain4j-embeddings-bge-small-en-v15-q</artifactId>
-			<version>1.19.0-beta29</version>
-			<scope>compile</scope>
-		</dependency>
+		<!-- langchain4j-embeddings-bge-small-en-v15-q removed: replaced by HF Inference API call
+		     to eliminate 120MB ONNX model memory overhead on Render free tier -->
 
 		<dependency>
 			<groupId>org.hibernate.orm</groupId>

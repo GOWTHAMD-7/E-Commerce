@@ -45,4 +45,13 @@ public class UserInteraction {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    /**
+     * Set to false when the interaction is logged.
+     * The PreferenceVectorScheduler flips it to true after merging this
+     * interaction into the user's stored preference vector.
+     */
+    @Column(name = "preference_synced", nullable = false, columnDefinition = "boolean default false")
+    @Builder.Default
+    private boolean preferenceSynced = false;
 }

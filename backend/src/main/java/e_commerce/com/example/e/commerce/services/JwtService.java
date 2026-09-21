@@ -73,6 +73,11 @@ public class JwtService{
 		}
 	}
 
+	/** Returns JWT expiry in seconds — used to sync cookie Max-Age with token lifetime */
+	public long getExpirationSeconds() {
+		return jwtExpiration / 1000;
+	}
+
 	private SecretKey getSigningKey() {
 		byte[] keyBytes = secretKey.getBytes(StandardCharsets.UTF_8);
 		return Keys.hmacShaKeyFor(keyBytes);

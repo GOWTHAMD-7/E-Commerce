@@ -121,6 +121,9 @@ public class EmailService {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.set("api-key", brevoApiKey);
+            // DEBUG: log key length and prefix to verify correct key is loaded
+            System.out.println("[DEBUG] Brevo key length: " + (brevoApiKey != null ? brevoApiKey.trim().length() : "null"));
+            System.out.println("[DEBUG] Brevo key prefix: " + (brevoApiKey != null && brevoApiKey.trim().length() > 10 ? brevoApiKey.trim().substring(0, 10) : "too short"));
 
             // 2. Build the JSON body payload
             Map<String, Object> sender = new HashMap<>();

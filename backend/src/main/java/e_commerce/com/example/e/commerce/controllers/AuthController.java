@@ -36,7 +36,7 @@ public class AuthController {
 				.secure(true) // Required for HTTPS environments (Render/Vercel)
 				.path("/")
 				.sameSite("None") // Required for cross-domain cookie sharing
-				.maxAge(7 * 24 * 60 * 60) // 7 days
+				.maxAge(jwtService.getExpirationSeconds()) // Matches JWT expiry exactly
 				.build();
 		response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 	}

@@ -210,8 +210,12 @@ public class OrderService {
         for (Order order : overdueOrders) {
             order.setStatus("DELIVERED");
             orderRepository.save(order);
-            emailService.sendOrderDeliveredEmail(order.getUser().getEmail(), order);
             System.out.println("Scheduled Delivery Scanner: Order #" + order.getId() + " marked as DELIVERED.");
+            try {
+                emailService.sendOrderDeliveredEmail(order.getUser().getEmail(), order);
+            } catch (Exception e) {
+                System.err.println("Warning: Could not send delivery email for Order #" + order.getId() + ": " + e.getMessage());
+            }
         }
     }
 }
