@@ -41,6 +41,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Unauthorized from './components/Unauthorized';
 import SellerDashboard from './components/SellerDashboard';
 import AdminDashboard from './components/AdminDashboard';
+import UserProfile from './components/UserProfile';
+import Addresses from './components/Addresses';
 import SearchBar from './components/SearchBar';
 import { 
   Flame, 
@@ -790,57 +792,14 @@ export default function App() {
                       <button
                         onClick={() => {
                           setShowProfileDropdown(false);
-                          alert('My Profile details coming soon!');
+                          navigate('/profile');
                         }}
                         className="flex items-center gap-2.5 w-full px-3 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all text-left focus:outline-none"
                       >
                         <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         </svg>
-                        My Profile
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          setShowProfileDropdown(false);
-                          navigate('/orders');
-                        }}
-                        className="flex items-center gap-2.5 w-full px-3 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all text-left focus:outline-none"
-                      >
-                        <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                        </svg>
-                        My Orders
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          setShowProfileDropdown(false);
-                          setAddressAdding(false);
-                          setAddressEditing(null);
-                          setShowAddressModal(true);
-                        }}
-                        className="flex items-center gap-2.5 w-full px-3 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all text-left focus:outline-none"
-                      >
-                        <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        Saved Addresses
-                      </button>
-                      
-                      <button
-                        onClick={() => {
-                          setShowProfileDropdown(false);
-                          alert('Account Settings coming soon!');
-                        }}
-                        className="flex items-center gap-2.5 w-full px-3 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all text-left focus:outline-none"
-                      >
-                        <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        Account Settings
+                        My Dashboard
                       </button>
 
                       {/* Mobile Seller Hub / Admin Hub links */}
@@ -1064,7 +1023,6 @@ export default function App() {
           path="/product/:id" 
           element={
             <ProductDetails
-              products={products}
               favorites={favorites}
               onToggleFavorite={handleToggleFavorite}
               onAddToCart={handleAddToCart}
@@ -1092,6 +1050,8 @@ export default function App() {
 
         {/* Protected Customer/Seller Routes */}
         <Route element={<ProtectedRoute allowedRoles={['CUSTOMER', 'SELLER']} />}>
+          <Route path="/profile" element={<UserProfile orders={orders} favorites={favorites} />} />
+          <Route path="/addresses" element={<Addresses />} />
           <Route 
             path="/cart" 
             element={
@@ -1583,7 +1543,7 @@ export default function App() {
                     </button>
                   </div>
                 ) : (
-                  <div className="orders-list" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div className="orders-list flex flex-col gap-6">
                     {orders.map((order) => {
                       const canCancel = (o: Order) => {
                         if (o.status !== 'PENDING') return false;
@@ -1594,80 +1554,112 @@ export default function App() {
                         return diffMin < 5;
                       };
 
+                      const orderTotal = order.orderItems
+                        ? order.orderItems.reduce((sum, item) => sum + item.purchasedPrice * item.quantity, 0).toFixed(2)
+                        : '0.00';
+
+                      let bg = 'bg-amber-50'; 
+                      let fg = 'text-amber-700';
+                      let border = 'border-amber-200/50';
+                      let txt = order.status || 'PENDING';
+                      if (txt === 'DELIVERED') {
+                        bg = 'bg-emerald-50';
+                        fg = 'text-emerald-700';
+                        border = 'border-emerald-200/50';
+                      } else if (txt === 'CANCELLED') {
+                        bg = 'bg-rose-50';
+                        fg = 'text-rose-700';
+                        border = 'border-rose-200/50';
+                      }
+
                       return (
-                        <div key={order.id} className="order-row" style={{ padding: '20px', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)' }}>
-                          <div className="order-header-row" style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: '12px', marginBottom: '12px' }}>
-                            <span className="order-id" style={{ fontWeight: 700 }}>Order #{order.id}</span>
-                            <span className="order-date" style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
-                              {order.orderDate
-                                ? new Date(order.orderDate).toLocaleString()
-                                : 'Recent'}
-                            </span>
+                        <div key={order.id} className="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-shadow shrink-0">
+                          {/* Order Header */}
+                          <div className="bg-slate-50/50 border-b border-slate-100 p-4 md:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center gap-3">
+                                <span className="font-extrabold text-slate-800">Order #{order.id}</span>
+                                <span className={`text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-lg border ${bg} ${fg} ${border}`}>
+                                  {txt}
+                                </span>
+                              </div>
+                              <span className="text-sm font-medium text-slate-500">
+                                Placed on {order.orderDate ? new Date(order.orderDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Recently'}
+                              </span>
+                            </div>
+                            <div className="flex flex-col md:items-end">
+                              <span className="text-sm font-medium text-slate-500">Total Amount</span>
+                              <span className="font-extrabold text-slate-800 text-lg">${orderTotal}</span>
+                            </div>
                           </div>
-                          <div className="order-items-summary" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+
+                          {/* Order Items */}
+                          <div className="p-4 md:p-5 flex flex-col gap-4">
                             {order.orderItems && order.orderItems.map((item, idx) => (
-                              <div key={idx} className="order-item-summary-line" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span>{item.product.name} <strong style={{ color: 'var(--color-text-muted)' }}>x{item.quantity}</strong></span>
-                                <span>${(item.purchasedPrice * item.quantity).toFixed(2)}</span>
+                              <div key={idx} className="flex items-center gap-4 group">
+                                <div className="w-16 h-16 md:w-20 md:h-20 shrink-0 bg-slate-100 rounded-xl overflow-hidden border border-slate-200/60 relative">
+                                  {item.product.mainImage || item.product.imageUrl ? (
+                                    <img 
+                                      src={item.product.mainImage || item.product.imageUrl} 
+                                      alt={item.product.name}
+                                      className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-slate-300">
+                                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                      </svg>
+                                    </div>
+                                  )}
+                                  <div className="absolute top-0 right-0 bg-slate-800/80 backdrop-blur text-white text-[10px] font-bold px-1.5 py-0.5 rounded-bl-lg">
+                                    x{item.quantity}
+                                  </div>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-semibold text-slate-800 truncate" title={item.product.name}>{item.product.name}</h4>
+                                  <p className="text-sm font-medium text-slate-500">${item.purchasedPrice.toFixed(2)} each</p>
+                                </div>
+                                <div className="font-bold text-slate-700">
+                                  ${(item.purchasedPrice * item.quantity).toFixed(2)}
+                                </div>
                               </div>
                             ))}
                           </div>
-                          {order.shippingFullName && (
-                            <div style={{ 
-                              marginTop: '16px', 
-                              paddingTop: '16px', 
-                              borderTop: '1px dashed var(--color-border)',
-                              fontSize: '0.875rem',
-                              color: 'var(--color-text-secondary)',
-                              textAlign: 'left'
-                            }}>
-                              <div style={{ fontWeight: 650, color: 'var(--color-text-primary)', marginBottom: '6px', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em' }}>Ship to:</div>
-                              <div style={{ fontWeight: 700, color: 'var(--color-text-primary)' }}>{order.shippingFullName}</div>
-                              <div style={{ marginTop: '2px' }}>{order.shippingAddressLine1}{order.shippingAddressLine2 ? `, ${order.shippingAddressLine2}` : ''}</div>
-                              <div>{order.shippingCity}, {order.shippingState}, {order.shippingCountry} - {order.shippingPincode}</div>
-                              <div style={{ marginTop: '4px', fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>Phone: {order.shippingPhoneNumber}</div>
-                            </div>
-                          )}
-                          <div className="order-footer-row" style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--color-border)', paddingTop: '12px', marginTop: '12px', alignItems: 'center' }}>
-                            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                              {(() => {
-                                let bg = '#fef7e0'; // yellow for PENDING
-                                let fg = '#b06000';
-                                let txt = order.status || 'PENDING';
-                                if (txt === 'DELIVERED') {
-                                  bg = '#e6f4ea';
-                                  fg = '#137333';
-                                } else if (txt === 'CANCELLED') {
-                                  bg = '#fce8e6';
-                                  fg = '#c5221f';
-                                }
-                                return (
-                                  <span 
-                                    className="order-status-badge" 
-                                    style={{ background: bg, color: fg, padding: '4px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}
-                                  >
-                                    {txt}
-                                  </span>
-                                );
-                              })()}
 
+                          {/* Footer & Actions */}
+                          <div className="bg-slate-50/50 border-t border-slate-100 p-4 md:p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            <div className="text-xs font-medium text-slate-500 flex flex-col gap-1">
+                              {order.shippingFullName && (
+                                <>
+                                  <span className="font-semibold text-slate-700">Shipped to: {order.shippingFullName}</span>
+                                  <span className="truncate max-w-[250px] md:max-w-md">
+                                    {order.shippingAddressLine1}{order.shippingAddressLine2 ? `, ${order.shippingAddressLine2}` : ''}, {order.shippingCity}, {order.shippingPincode}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                            
+                            <div className="flex items-center gap-3 w-full sm:w-auto">
+                              {txt === 'DELIVERED' && (
+                                <button
+                                  type="button"
+                                  onClick={() => navigate('/')}
+                                  className="flex-1 sm:flex-none px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-sm rounded-xl transition-colors"
+                                >
+                                  Buy Again
+                                </button>
+                              )}
+                              
                               {canCancel(order) && (
                                 <button
                                   type="button"
                                   onClick={() => order.id !== undefined && handleRequestCancel(order.id)}
-                                  className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-750 text-white font-bold text-xs rounded-xl shadow-sm hover:shadow active:scale-95 transition-all focus:outline-none"
-                                  style={{ backgroundColor: '#dc2626' }}
+                                  className="flex-1 sm:flex-none px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-sm rounded-xl transition-colors"
                                 >
                                   Cancel Order
                                 </button>
                               )}
                             </div>
-                            <span className="order-total-sum" style={{ fontWeight: 700 }}>
-                              Total: $
-                              {order.orderItems
-                                ? order.orderItems.reduce((sum, item) => sum + item.purchasedPrice * item.quantity, 0).toFixed(2)
-                                : '0.00'}
-                            </span>
                           </div>
                         </div>
                       );

@@ -160,6 +160,14 @@ export async function fetchFeaturedProducts(page: number = 0, size: number = 12)
     return result.slice(0, size);
 }
 
+export async function fetchSimilarProducts(productId: number, limit: number = 10): Promise<Product[]> {
+    const response = await apiClient.get(`/products/${productId}/similar`, {
+        params: { limit }
+    });
+    const data = response.data;
+    return Array.isArray(data) ? data.map(sanitizeProduct) : [];
+}
+
 export async function fetchNewArrivals(): Promise<Product[]> {
     const response = await apiClient.get('/products/new-arrivals');
     const data = response.data;
@@ -258,7 +266,19 @@ export async function checkoutBackendCart(addressId: number): Promise<any> {
 
 export async function fetchBackendOrders(): Promise<any[]> {
     const response = await apiClient.get('/api/orders');
-    return response.data;
+    const data = response.data;
+    if (Array.isArray(data)) {
+        return data.map(order => ({
+            ...order,
+            orderItems: Array.isArray(order.orderItems) 
+                ? order.orderItems.map((item: any) => ({
+                    ...item,
+                    product: sanitizeProduct(item.product)
+                })) 
+                : []
+        }));
+    }
+    return [];
 }
 
 export async function searchProducts(query: string): Promise<Product[]> {

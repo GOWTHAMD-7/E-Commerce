@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Zap, ChevronLeft, ChevronRight, ShieldCheck, Truck, Headphones, Flame, Star, ShoppingBag } from 'lucide-react';
+import { ArrowRight, Zap, ChevronLeft, ChevronRight, Flame, Star, ShoppingBag } from 'lucide-react';
 import type { Product } from '../types';
 import { fetchTopRatedProducts, sanitizeProduct } from '../api';
 
@@ -283,49 +283,6 @@ export default function HeroCarousel({ onSelectCategory, onAddToCart }: HeroCaro
               aria-label={`Go to slide ${idx + 1}`}
             />
           ))}
-        </div>
-      </div>
-
-      {/* Trust Badges */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-        <div className="flex items-center gap-3 p-2">
-          <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100">
-            <Truck className="w-5 h-5" />
-          </div>
-          <div className="text-left">
-            <h4 className="text-xs font-extrabold text-slate-800">Free Fast Delivery</h4>
-            <p className="text-[10px] text-slate-400 font-medium">On orders above ₹999</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 p-2">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
-            <ShieldCheck className="w-5 h-5" />
-          </div>
-          <div className="text-left">
-            <h4 className="text-xs font-extrabold text-slate-800">100% Genuine Goods</h4>
-            <p className="text-[10px] text-slate-400 font-medium">Direct brand warranty</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 p-2">
-          <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center border border-purple-100">
-            <Zap className="w-5 h-5" />
-          </div>
-          <div className="text-left">
-            <h4 className="text-xs font-extrabold text-slate-800">Instant Easy Returns</h4>
-            <p className="text-[10px] text-slate-400 font-medium">7-day hassle-free policy</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 p-2">
-          <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100">
-            <Headphones className="w-5 h-5" />
-          </div>
-          <div className="text-left">
-            <h4 className="text-xs font-extrabold text-slate-800">24/7 VIP Support</h4>
-            <p className="text-[10px] text-slate-400 font-medium">Dedicated agent helpline</p>
-          </div>
         </div>
       </div>
 

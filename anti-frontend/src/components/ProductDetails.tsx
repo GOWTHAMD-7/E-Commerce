@@ -1,14 +1,13 @@
 import { useEffect, useState, useContext } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import type { Product } from '../types';
-import { fetchProductById, fetchProductReviews, createProductReview } from '../api';
+import { fetchProductById, fetchProductReviews, createProductReview, fetchSimilarProducts } from '../api';
 import { renderStockBadge } from './ProductCard';
 import ProductCard from './ProductCard';
 import { ShoppingBag, Zap, Heart, Star, CheckCircle, MessageSquare } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 
 interface ProductDetailsProps {
-  products: Product[]; // Mapped for category recommendations matching
   favorites: Product[];
   onToggleFavorite: (id: number) => void;
   onAddToCart: (product: Product, quantity: number) => void;
@@ -16,7 +15,6 @@ interface ProductDetailsProps {
 }
 
 export default function ProductDetails({
-  products,
   favorites,
   onToggleFavorite,
   onAddToCart,
@@ -40,6 +38,8 @@ export default function ProductDetails({
   const [submittingReview, setSubmittingReview] = useState<boolean>(false);
   const [reviewSuccess, setReviewSuccess] = useState<string | null>(null);
   const [reviewError, setReviewError] = useState<string | null>(null);
+
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
 
   // Redesign states
   const [activeImage, setActiveImage] = useState<string>('');
@@ -68,6 +68,10 @@ export default function ProductDetails({
     fetchProductReviews(Number(id))
       .then((revs) => setLiveReviews(revs))
       .catch(() => setLiveReviews([]));
+
+    fetchSimilarProducts(Number(id), 10)
+      .then((similars) => setRelatedProducts(similars))
+      .catch(() => setRelatedProducts([]));
   }, [id]);
 
   const handleReviewSubmit = async (e: React.FormEvent) => {
@@ -149,12 +153,6 @@ export default function ProductDetails({
       </div>
     );
   }
-
-  // Find related products in the same category
-  const relatedProducts = products
-    .filter((p) => p.category === product.category && p.id !== product.id)
-    .slice(0, 8);
-
   const hasStock = product.stock > 0;
 
 
