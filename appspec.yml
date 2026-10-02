@@ -1,0 +1,34 @@
+version: 0.0
+os: linux
+
+files:
+  - source: /
+    destination: /home/ubuntu/E-Commerce
+    overwrite: true
+
+permissions:
+  - object: /home/ubuntu/E-Commerce/deploy
+    mode: "0755"
+    type:
+      - file
+
+hooks:
+  BeforeInstall:
+    - location: deploy/stop.sh
+      timeout: 60
+      runas: ubuntu
+
+  AfterInstall:
+    - location: deploy/build.sh
+      timeout: 600
+      runas: ubuntu
+
+  ApplicationStart:
+    - location: deploy/start.sh
+      timeout: 90
+      runas: ubuntu
+
+  ValidateService:
+    - location: deploy/validate.sh
+      timeout: 120
+      runas: ubuntu
