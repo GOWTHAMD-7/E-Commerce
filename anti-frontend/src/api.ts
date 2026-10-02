@@ -113,33 +113,7 @@ export async function fetchProductsByCategory(category: string, page: number = 0
         console.warn('Dedicated category endpoint error:', err);
     }
 
-    // If we got enough items (>= size), return immediately
-    if (categoryProducts.length >= size) {
-        return categoryProducts.slice(0, size);
-    }
-
-    // 2. If strict category match returned fewer items, supplement using search query endpoint
-    try {
-        const searchRes = await apiClient.get('/products', {
-            params: { query: category }
-        });
-        if (Array.isArray(searchRes.data) && searchRes.data.length > 0) {
-            const searchProducts = searchRes.data.map(sanitizeProduct);
-            const existingIds = new Set(categoryProducts.map(p => p.id));
-            
-            for (const p of searchProducts) {
-                if (!existingIds.has(p.id)) {
-                    categoryProducts.push(p);
-                    existingIds.add(p.id);
-                    if (categoryProducts.length >= size) break;
-                }
-            }
-        }
-    } catch (err) {
-        console.warn(`Fallback search for category ${category} error:`, err);
-    }
-
-    return categoryProducts.slice(0, size);
+    return categoryProducts;
 }
 
 export async function fetchCategories(): Promise<string[]> {
