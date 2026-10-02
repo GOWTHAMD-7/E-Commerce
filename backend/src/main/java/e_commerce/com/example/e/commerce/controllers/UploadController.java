@@ -7,14 +7,14 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 
-@CrossOrigin(origins = "http://localhost:5174")
 @RestController
 @RequiredArgsConstructor
+@RequestMapping({"/upload", "/api/upload"})
 public class UploadController {
 
     private final CloudinaryService cloudinaryService;
 
-    @PostMapping("/upload")
+    @PostMapping("")
     public String uploadImage(@RequestParam("image") MultipartFile image)
             throws IOException {
 

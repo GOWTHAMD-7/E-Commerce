@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 
 
 @RestController
+@RequestMapping({"/products", "/api/products"})
 public class ProductController {
 
     @Autowired
@@ -59,7 +60,7 @@ public class ProductController {
         return null;
     }
 
-    @GetMapping("/products")
+    @GetMapping("")
     public ResponseEntity<List<ProductCardDTO>> getProducts(
             @RequestParam(required = false) String query,
             @RequestParam(required = false) String category,
@@ -80,7 +81,7 @@ public class ProductController {
         return new ResponseEntity<>(productService.getAllProductsDTO(), HttpStatus.ACCEPTED);
     }
 
-    @GetMapping({"/products/hybrid-search", "/api/products/hybrid-search"})
+    @GetMapping("/hybrid-search")
     public ResponseEntity<?> hybridSearch(
             @RequestParam String query,
             @RequestParam(required = false, defaultValue = "0") Integer page,
@@ -121,7 +122,7 @@ public class ProductController {
         }
     }
 
-    @GetMapping({"/products/semantic-search", "/api/products/semantic-search"})
+    @GetMapping("/semantic-search")
     public ResponseEntity<?> semanticSearch(
             @RequestParam String query,
             @RequestParam(required = false, defaultValue = "10") Integer limit) {
@@ -148,7 +149,7 @@ public class ProductController {
         }
     }
 
-    @GetMapping({"/products/{productId}/similar", "/api/products/{productId}/similar"})
+    @GetMapping("/{productId}/similar")
     public ResponseEntity<?> getSimilarProducts(
             @PathVariable Long productId,
             @RequestParam(required = false, defaultValue = "8") Integer limit) {
@@ -169,7 +170,7 @@ public class ProductController {
         }
     }
 
-    @GetMapping("/products/category")
+    @GetMapping("/category")
     public ResponseEntity<List<ProductCardDTO>> getProductsByCategory(
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String category,
@@ -182,7 +183,7 @@ public class ProductController {
         return new ResponseEntity<>(productService.getProductsByCategoryAndPage(targetCategory, page, size), HttpStatus.ACCEPTED);
     }
 
-    @GetMapping("/products/featured")
+    @GetMapping("/featured")
     public ResponseEntity<List<ProductCardDTO>> getFeaturedProducts(
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size) {
@@ -191,27 +192,27 @@ public class ProductController {
         return new ResponseEntity<>(productService.getFeaturedProducts(pageNum, pageSize), HttpStatus.ACCEPTED);
     }
 
-    @GetMapping("/products/new-arrivals")
+    @GetMapping("/new-arrivals")
     public ResponseEntity<List<ProductCardDTO>> getNewArrivals() {
         return new ResponseEntity<>(productService.getNewArrivals(), HttpStatus.ACCEPTED);
     }
 
-    @GetMapping("/products/top-rated")
+    @GetMapping("/top-rated")
     public ResponseEntity<List<ProductCardDTO>> getTopRated() {
         return new ResponseEntity<>(productService.getTopRatedProducts(), HttpStatus.ACCEPTED);
     }
 
-    @GetMapping("/products/most-reviewed")
+    @GetMapping("/most-reviewed")
     public ResponseEntity<List<ProductCardDTO>> getMostReviewed() {
         return new ResponseEntity<>(productService.getMostReviewedProducts(), HttpStatus.ACCEPTED);
     }
 
-    @GetMapping("/products/most-viewed")
+    @GetMapping("/most-viewed")
     public ResponseEntity<List<ProductCardDTO>> getMostViewed() {
         return new ResponseEntity<>(productService.getMostViewedProducts(), HttpStatus.ACCEPTED);
     }
 
-    @GetMapping("/products/suggestions")
+    @GetMapping("/suggestions")
     public ResponseEntity<List<String>> getSuggestions(@RequestParam String query) {
         if (query == null || query.trim().isEmpty()) {
             return ResponseEntity.ok(List.of());
@@ -219,12 +220,12 @@ public class ProductController {
         return ResponseEntity.ok(productService.getSuggestions(query));
     }
 
-    @GetMapping("/products/categories")
+    @GetMapping("/categories")
     public ResponseEntity<List<String>> getCategories() {
         return ResponseEntity.ok(productService.getAllCategories());
     }
 
-    @GetMapping("/products/{id}")
+    @GetMapping("/{id}")
     public ResponseEntity<Product> getProductById(@PathVariable Long id) {
         productService.incrementViewCount(id);
         Product product = productService.getProductById(id);
@@ -244,14 +245,14 @@ public class ProductController {
         return ResponseEntity.ok(product);
     }
 
-    @PostMapping("/products")
+    @PostMapping("")
     public ResponseEntity<Product> createProduct(@RequestBody Product newProduct) {
         String email = getLoggedInUserEmail();
         User seller = email != null ? userService.findByEmail(email) : null;
         return new ResponseEntity<>(productService.createProduct(newProduct, seller), HttpStatus.CREATED);
     }
 
-    @PostMapping(value = "/products", consumes = "multipart/form-data")
+    @PostMapping(value = "", consumes = "multipart/form-data")
     public ResponseEntity<Product> createProductMultipart(
             @ModelAttribute Product product,
             @RequestParam(value = "image", required = false) MultipartFile image) throws java.io.IOException {
@@ -264,7 +265,7 @@ public class ProductController {
         return new ResponseEntity<>(productService.createProduct(product, seller), HttpStatus.CREATED);
     }
 
-    @PutMapping("/products/{id}")
+    @PutMapping("/{id}")
     public ResponseEntity<Product> updateProduct(@PathVariable Long id, @RequestBody Product product) {
         String email = getLoggedInUserEmail();
         User user = userService.findByEmail(email);
@@ -277,7 +278,7 @@ public class ProductController {
         }
     }
 
-    @PutMapping(value = "/products/{id}", consumes = "multipart/form-data")
+    @PutMapping(value = "/{id}", consumes = "multipart/form-data")
     public ResponseEntity<Product> updateProductMultipart(
             @PathVariable Long id,
             @ModelAttribute Product product,
@@ -310,7 +311,7 @@ public class ProductController {
         }
     }
 
-    @DeleteMapping("/products/{id}")
+    @DeleteMapping("/{id}")
     public ResponseEntity<MessageResponse> deleteProduct(@PathVariable Long id) {
         String email = getLoggedInUserEmail();
         User user = userService.findByEmail(email);

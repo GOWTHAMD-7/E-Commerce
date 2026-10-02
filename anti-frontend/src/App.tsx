@@ -980,12 +980,12 @@ export default function App() {
                       <>
                         {/* Flipkart / Amazon Style Creative Hero Carousel & Category Bubble Bar */}
                         <HeroCarousel 
-                          products={products}
                           onSelectCategory={(category) => {
                             setSearchQuery('');
                             setActiveCategory(category);
                             window.scrollTo({ top: 0, behavior: 'smooth' });
                           }}
+                          onAddToCart={handleAddToCart}
                         />
 
                         {(recommendationsLoading || recommendations.length > 0) && (

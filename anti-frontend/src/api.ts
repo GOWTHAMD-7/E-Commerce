@@ -10,10 +10,22 @@ export const apiClient = axios.create({
     withCredentials: true, // Enables automatic HttpOnly cookie transmission
 });
 
-// Response Interceptor: Format error messages cleanly
+// Response Interceptor: Format error messages cleanly + auto-logout on 401
 apiClient.interceptors.response.use(
     (response) => response,
     (error) => {
+        // If the server returns 401 (JWT expired/invalid), clear state and redirect to login
+        if (error.response?.status === 401) {
+            // Clear any locally stored user state
+            localStorage.removeItem('user');
+            localStorage.removeItem('cart');
+            // Redirect to home which will show the login prompt
+            // Use location.replace so the user can't go "back" to the protected page
+            if (window.location.pathname !== '/') {
+                window.location.replace('/');
+            }
+        }
+
         let message = error.message || 'An unexpected network error occurred';
         if (error.response && error.response.data) {
             if (typeof error.response.data === 'string') {

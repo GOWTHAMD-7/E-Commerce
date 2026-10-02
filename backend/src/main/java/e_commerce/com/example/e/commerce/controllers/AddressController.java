@@ -10,9 +10,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@CrossOrigin(origins = "http://localhost:5174")
 @RestController
-@RequestMapping("/api/address")
+@RequestMapping({"/api/address", "/address"})
 public class AddressController {
 
     private final AddressService addressService;

@@ -1084,21 +1084,6 @@ export default function ProductList({
             ))}
           </div>
 
-          {/* 4. Placeholder: Recommended For You Section */}
-          <section className="mb-12 bg-[#FFFFFF] rounded-3xl p-6 sm:p-8 border border-[#6E6E73]/20 relative overflow-hidden">
-            <div className="relative z-10 max-w-2xl">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-xl">✨</span>
-                <h3 className="text-xl font-bold text-[#111113]">Recommended For You</h3>
-              </div>
-              <p className="text-[#6E6E73] text-sm sm:text-base mb-5 leading-relaxed">
-                Personalized recommendations are currently being tuned. Soon, our AI matching engine will showcase hand-picked products selected just for you based on your browsing preferences.
-              </p>
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-[10px] font-bold bg-[#111113] text-white uppercase tracking-wider">
-                🚀 Coming Soon
-              </span>
-            </div>
-          </section>
 
           {/* 5. Featured Products Grid (Initial 4 rows = 16 items, dynamic scroll loads 3 rows = 12 items) */}
           <FeaturedProductsSection

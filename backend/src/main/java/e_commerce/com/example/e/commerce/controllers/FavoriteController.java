@@ -9,9 +9,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Set;
 
-@CrossOrigin(origins = "http://localhost:5174")
 @RestController
-@RequestMapping("/api/favorites")
+@RequestMapping({"/api/favorites", "/favorites"})
 public class FavoriteController {
 
     private final FavoriteService favoriteService;
