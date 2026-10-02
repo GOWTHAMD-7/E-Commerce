@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { fetchSearchSuggestions } from '../api';
 
 interface SearchBarProps {
@@ -12,6 +13,7 @@ export default function SearchBar({ searchQuery, setSearchQuery }: SearchBarProp
   const [showDropdown, setShowDropdown] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   // Debounce fetching suggestions
   useEffect(() => {
@@ -77,6 +79,9 @@ export default function SearchBar({ searchQuery, setSearchQuery }: SearchBarProp
         handleSelectSuggestion(suggestions[activeIndex]);
       } else {
         setShowDropdown(false);
+        if (searchQuery.trim() !== '') {
+          navigate('/');
+        }
       }
     } else if (e.key === 'Escape') {
       setShowDropdown(false);
@@ -86,6 +91,7 @@ export default function SearchBar({ searchQuery, setSearchQuery }: SearchBarProp
   const handleSelectSuggestion = (suggestion: string) => {
     setSearchQuery(suggestion);
     setShowDropdown(false);
+    navigate('/');
   };
 
   // Helper to highlight matching text

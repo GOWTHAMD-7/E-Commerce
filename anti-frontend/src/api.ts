@@ -10,19 +10,74 @@ export const apiClient = axios.create({
     withCredentials: true, // Enables automatic HttpOnly cookie transmission
 });
 
+let isRefreshing = false;
+let failedQueue: Array<{ resolve: (value?: unknown) => void; reject: (reason?: any) => void }> = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+    failedQueue.forEach((prom) => {
+        if (error) {
+            prom.reject(error);
+        } else {
+            prom.resolve(token);
+        }
+    });
+    failedQueue = [];
+};
+
 // Response Interceptor: Format error messages cleanly + auto-logout on 401
 apiClient.interceptors.response.use(
     (response) => response,
-    (error) => {
-        // If the server returns 401 (JWT expired/invalid), clear state and redirect to login
-        if (error.response?.status === 401) {
-            // Clear any locally stored user state
-            localStorage.removeItem('user');
-            localStorage.removeItem('cart');
-            // Redirect to home which will show the login prompt
-            // Use location.replace so the user can't go "back" to the protected page
-            if (window.location.pathname !== '/') {
-                window.location.replace('/');
+    async (error) => {
+        const originalRequest = error.config;
+
+        if (error.response?.status === 401 && !originalRequest._retry) {
+            if (originalRequest.url?.includes('/refresh-token')) {
+                // Refresh token failed, meaning session is fully expired
+                localStorage.removeItem('user');
+                localStorage.removeItem('cart');
+                localStorage.removeItem('jwt_token');
+                localStorage.removeItem('user_email');
+                if (window.location.pathname !== '/') {
+                    window.location.replace('/');
+                }
+                return Promise.reject(error);
+            }
+
+            if (isRefreshing) {
+                return new Promise(function (resolve, reject) {
+                    failedQueue.push({ resolve, reject });
+                })
+                    .then(() => {
+                        return apiClient(originalRequest);
+                    })
+                    .catch((err) => {
+                        return Promise.reject(err);
+                    });
+            }
+
+            originalRequest._retry = true;
+            isRefreshing = true;
+
+            try {
+                const res = await axios.post(`${API_BASE_URL}/auth/refresh-token`, {}, { withCredentials: true });
+                const newToken = res.data.token;
+                if (newToken) {
+                    localStorage.setItem('jwt_token', newToken); // For context parsing
+                }
+                processQueue(null, newToken);
+                return apiClient(originalRequest);
+            } catch (err) {
+                processQueue(err, null);
+                localStorage.removeItem('user');
+                localStorage.removeItem('cart');
+                localStorage.removeItem('jwt_token');
+                localStorage.removeItem('user_email');
+                if (window.location.pathname !== '/') {
+                    window.location.replace('/');
+                }
+                return Promise.reject(err);
+            } finally {
+                isRefreshing = false;
             }
         }
 

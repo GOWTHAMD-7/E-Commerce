@@ -6,7 +6,9 @@ import e_commerce.com.example.e.commerce.dto.RegisterRequest;
 import e_commerce.com.example.e.commerce.dto.MessageResponse;
 import e_commerce.com.example.e.commerce.models.Role;
 import e_commerce.com.example.e.commerce.models.User;
+import e_commerce.com.example.e.commerce.models.RefreshToken;
 import e_commerce.com.example.e.commerce.services.JwtService;
+import e_commerce.com.example.e.commerce.services.RefreshTokenService;
 import e_commerce.com.example.e.commerce.services.UserService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -23,10 +25,12 @@ public class AuthController {
 
 	private final UserService userService;
 	private final JwtService jwtService;
+	private final RefreshTokenService refreshTokenService;
 
-	public AuthController(UserService userService, JwtService jwtService) {
+	public AuthController(UserService userService, JwtService jwtService, RefreshTokenService refreshTokenService) {
 		this.userService = userService;
 		this.jwtService = jwtService;
+		this.refreshTokenService = refreshTokenService;
 	}
 
 	private void attachJwtCookie(HttpServletResponse response, String token) {
@@ -41,6 +45,18 @@ public class AuthController {
 		response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 	}
 
+	private void attachRefreshTokenCookie(HttpServletResponse response, String token) {
+		if (token == null) return;
+		ResponseCookie cookie = ResponseCookie.from("refresh_token", token)
+				.httpOnly(true)
+				.secure(true)
+				.path("/api/auth/refresh-token") // Only sent to refresh endpoint
+				.sameSite("None")
+				.maxAge(604800) // 7 days
+				.build();
+		response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+	}
+
 	private void clearJwtCookie(HttpServletResponse response) {
 		ResponseCookie cookie = ResponseCookie.from("jwt_token", "")
 				.httpOnly(true)
@@ -50,6 +66,15 @@ public class AuthController {
 				.maxAge(0)
 				.build();
 		response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+		
+		ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", "")
+				.httpOnly(true)
+				.secure(true)
+				.path("/api/auth/refresh-token")
+				.sameSite("None")
+				.maxAge(0)
+				.build();
+		response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
 	}
 
 	@PostMapping("/register")
@@ -82,6 +107,10 @@ public class AuthController {
 			}
 			String token = jwtService.generateToken(user);
 			attachJwtCookie(response, token);
+			
+			RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
+			attachRefreshTokenCookie(response, refreshToken.getToken());
+			
 			return ResponseEntity.ok(new AuthResponse(token, "Login successful"));
 		} catch (RuntimeException e) {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new AuthResponse(null, e.getMessage()));
@@ -103,6 +132,10 @@ public class AuthController {
 				User user = userService.findByEmail(email);
 				String token = jwtService.generateToken(user);
 				attachJwtCookie(response, token);
+				
+				RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
+				attachRefreshTokenCookie(response, refreshToken.getToken());
+				
 				return ResponseEntity.ok(new AuthResponse(token, "Account verified successfully"));
 			} else {
 				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new AuthResponse(null, "Invalid or expired verification code"));
@@ -155,6 +188,10 @@ public class AuthController {
 			User user = userService.findByEmail(email);
 			String token = jwtService.generateToken(user);
 			attachJwtCookie(response, token);
+			
+			RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
+			attachRefreshTokenCookie(response, refreshToken.getToken());
+			
 			return ResponseEntity.ok(new AuthResponse(token, "Password reset successful"));
 		} catch (RuntimeException e) {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new AuthResponse(null, e.getMessage()));
@@ -171,6 +208,10 @@ public class AuthController {
 			User user = userService.loginOrRegisterGoogle(idToken);
 			String token = jwtService.generateToken(user);
 			attachJwtCookie(response, token);
+			
+			RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
+			attachRefreshTokenCookie(response, refreshToken.getToken());
+			
 			return ResponseEntity.ok(new AuthResponse(token, "Login successful"));
 		} catch (Exception e) {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new AuthResponse(null, e.getMessage()));
@@ -181,5 +222,22 @@ public class AuthController {
 	public ResponseEntity<MessageResponse> logout(HttpServletResponse response) {
 		clearJwtCookie(response);
 		return ResponseEntity.ok(new MessageResponse("Logout successful"));
+	}
+	
+	@PostMapping("/refresh-token")
+	public ResponseEntity<AuthResponse> refreshToken(@CookieValue(name = "refresh_token", required = false) String requestRefreshToken, HttpServletResponse response) {
+		if (requestRefreshToken == null) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new AuthResponse(null, "Refresh token is missing!"));
+		}
+		
+		return refreshTokenService.findByToken(requestRefreshToken)
+			.map(refreshTokenService::verifyExpiration)
+			.map(RefreshToken::getUser)
+			.map(user -> {
+				String token = jwtService.generateToken(user);
+				attachJwtCookie(response, token);
+				return ResponseEntity.ok(new AuthResponse(token, "Token refreshed successfully"));
+			})
+			.orElseThrow(() -> new RuntimeException("Refresh token is not in database!"));
 	}
 }

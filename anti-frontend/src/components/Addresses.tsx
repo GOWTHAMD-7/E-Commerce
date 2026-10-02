@@ -12,7 +12,11 @@ import type { Address } from '../types';
 import { Plus, Edit2, Trash2, MapPin, CheckCircle2, ChevronLeft } from 'lucide-react';
 import { indiaData } from '../utils/indiaStates';
 
-export default function Addresses() {
+interface AddressesProps {
+  onAddressesUpdated?: () => void;
+}
+
+export default function Addresses({ onAddressesUpdated }: AddressesProps) {
   const auth = useContext(AuthContext);
   const navigate = useNavigate();
   const [addresses, setAddresses] = useState<Address[]>([]);
@@ -49,6 +53,9 @@ export default function Addresses() {
       setLoading(true);
       const data = await fetchAddresses();
       setAddresses(data);
+      if (onAddressesUpdated) {
+        onAddressesUpdated();
+      }
     } catch (err) {
       console.error('Failed to load addresses:', err);
     } finally {
@@ -246,7 +253,7 @@ export default function Addresses() {
                 
                 <div className="col-span-2">
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Phone Number</label>
-                  <input required type="text" value={formData.phoneNumber} onChange={e => setFormData({...formData, phoneNumber: e.target.value})} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all font-medium text-slate-700" placeholder="+1 (555) 000-0000" />
+                  <input required type="tel" pattern="^[6-9]\d{9}$" maxLength={10} title="Please enter a valid 10-digit Indian mobile number starting with 6-9." value={formData.phoneNumber} onChange={e => setFormData({...formData, phoneNumber: e.target.value.replace(/\D/g, '')})} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all font-medium text-slate-700" placeholder="9876543210" />
                 </div>
 
                 <div className="col-span-2">
