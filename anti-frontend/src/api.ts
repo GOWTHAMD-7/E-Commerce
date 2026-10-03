@@ -243,8 +243,25 @@ export async function fetchMostViewedProducts(): Promise<Product[]> {
 }
 
 export async function loginUser(email: string, password: string): Promise<AuthResponse> {
-    const response = await apiClient.post('/auth/login', { email, password });
+    try {
+        const response = await apiClient.post('/auth/login', { email, password });
+        return response.data;
+    } catch (error: any) {
+        if (error.response?.status === 409 && Array.isArray(error.response.data)) {
+            // Throw a specific error object containing the active sessions
+            throw { isDeviceLimit: true, sessions: error.response.data };
+        }
+        throw error;
+    }
+}
+
+export async function getSessions(): Promise<any[]> {
+    const response = await apiClient.get('/auth/sessions');
     return response.data;
+}
+
+export async function revokeSession(id: number): Promise<void> {
+    await apiClient.delete(`/auth/sessions/${id}`);
 }
 
 export async function googleLogin(token: string): Promise<AuthResponse> {

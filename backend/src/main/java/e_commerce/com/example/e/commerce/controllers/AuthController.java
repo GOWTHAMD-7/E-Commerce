@@ -16,8 +16,12 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.Map;
+import java.util.List;
+import e_commerce.com.example.e.commerce.dto.SessionDto;
+import e_commerce.com.example.e.commerce.exceptions.DeviceLimitExceededException;
 
 @RestController
 @RequestMapping({"/auth", "/api/auth"})
@@ -50,7 +54,7 @@ public class AuthController {
 		ResponseCookie cookie = ResponseCookie.from("refresh_token", token)
 				.httpOnly(true)
 				.secure(true)
-				.path("/api/auth/refresh-token") // Only sent to refresh endpoint
+				.path("/") // Fix: Allow cookie to be sent to both /auth and /api/auth
 				.sameSite("None")
 				.maxAge(604800) // 7 days
 				.build();
@@ -70,7 +74,7 @@ public class AuthController {
 		ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", "")
 				.httpOnly(true)
 				.secure(true)
-				.path("/api/auth/refresh-token")
+				.path("/") // Match the new path above
 				.sameSite("None")
 				.maxAge(0)
 				.build();
@@ -95,8 +99,40 @@ public class AuthController {
 		}
 	}
 
+	private String extractIpAddress(HttpServletRequest request) {
+		String ip = request.getHeader("X-Forwarded-For");
+		if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+			ip = request.getRemoteAddr();
+		} else {
+			// X-Forwarded-For can be a comma-separated list of IPs, the first one is the client
+			ip = ip.split(",")[0].trim();
+		}
+		return ip;
+	}
+
+	private String extractDeviceInfo(HttpServletRequest request) {
+		String userAgent = request.getHeader("User-Agent");
+		if (userAgent == null) return "Unknown Device";
+		
+		// Very basic parsing for demo purposes
+		String device = "Unknown";
+		if (userAgent.contains("Windows")) device = "Windows";
+		else if (userAgent.contains("Mac OS X")) device = "Mac";
+		else if (userAgent.contains("Android")) device = "Android";
+		else if (userAgent.contains("iPhone") || userAgent.contains("iPad")) device = "iOS";
+		else if (userAgent.contains("Linux")) device = "Linux";
+
+		String browser = "Unknown Browser";
+		if (userAgent.contains("Chrome")) browser = "Chrome";
+		else if (userAgent.contains("Safari") && !userAgent.contains("Chrome")) browser = "Safari";
+		else if (userAgent.contains("Firefox")) browser = "Firefox";
+		else if (userAgent.contains("Edge")) browser = "Edge";
+
+		return browser + " on " + device;
+	}
+
 	@PostMapping("/login")
-	public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request, HttpServletResponse response) {
+	public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletRequest req, HttpServletResponse res) {
 		try {
 			User user = userService.findByEmail(request.getEmail());
 			if (!userService.validatePassword(request.getPassword(), user.getPassword())) {
@@ -106,10 +142,17 @@ public class AuthController {
 				return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new AuthResponse(null, "Please verify your email first using the OTP code sent to your email."));
 			}
 			String token = jwtService.generateToken(user);
-			attachJwtCookie(response, token);
+			attachJwtCookie(res, token);
 			
-			RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
-			attachRefreshTokenCookie(response, refreshToken.getToken());
+			String ip = extractIpAddress(req);
+			String device = extractDeviceInfo(req);
+			
+			try {
+				RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId(), device, ip);
+				attachRefreshTokenCookie(res, refreshToken.getToken());
+			} catch (DeviceLimitExceededException e) {
+				return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getActiveSessions());
+			}
 			
 			return ResponseEntity.ok(new AuthResponse(token, "Login successful"));
 		} catch (RuntimeException e) {
@@ -118,7 +161,7 @@ public class AuthController {
 	}
 
 	@PostMapping("/verify-otp")
-	public ResponseEntity<AuthResponse> verifyOtp(@RequestBody Map<String, String> request, HttpServletResponse response) {
+	public ResponseEntity<?> verifyOtp(@RequestBody Map<String, String> request, HttpServletRequest req, HttpServletResponse res) {
 		String email = request.get("email");
 		String otp = request.get("otp");
 
@@ -131,10 +174,17 @@ public class AuthController {
 			if (isVerified) {
 				User user = userService.findByEmail(email);
 				String token = jwtService.generateToken(user);
-				attachJwtCookie(response, token);
+				attachJwtCookie(res, token);
 				
-				RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
-				attachRefreshTokenCookie(response, refreshToken.getToken());
+				String ip = extractIpAddress(req);
+				String device = extractDeviceInfo(req);
+				
+				try {
+					RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId(), device, ip);
+					attachRefreshTokenCookie(res, refreshToken.getToken());
+				} catch (DeviceLimitExceededException e) {
+					return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getActiveSessions());
+				}
 				
 				return ResponseEntity.ok(new AuthResponse(token, "Account verified successfully"));
 			} else {
@@ -174,7 +224,7 @@ public class AuthController {
 	}
 
 	@PostMapping("/reset-password")
-	public ResponseEntity<AuthResponse> resetPassword(@RequestBody Map<String, String> request, HttpServletResponse response) {
+	public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> request, HttpServletRequest req, HttpServletResponse res) {
 		String email = request.get("email");
 		String otp = request.get("otp");
 		String newPassword = request.get("newPassword");
@@ -187,10 +237,17 @@ public class AuthController {
 			userService.resetPassword(email, otp, newPassword);
 			User user = userService.findByEmail(email);
 			String token = jwtService.generateToken(user);
-			attachJwtCookie(response, token);
+			attachJwtCookie(res, token);
 			
-			RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
-			attachRefreshTokenCookie(response, refreshToken.getToken());
+			String ip = extractIpAddress(req);
+			String device = extractDeviceInfo(req);
+			
+			try {
+				RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId(), device, ip);
+				attachRefreshTokenCookie(res, refreshToken.getToken());
+			} catch (DeviceLimitExceededException e) {
+				return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getActiveSessions());
+			}
 			
 			return ResponseEntity.ok(new AuthResponse(token, "Password reset successful"));
 		} catch (RuntimeException e) {
@@ -199,7 +256,7 @@ public class AuthController {
 	}
 
 	@PostMapping("/google")
-	public ResponseEntity<AuthResponse> googleLogin(@RequestBody Map<String, String> request, HttpServletResponse response) {
+	public ResponseEntity<?> googleLogin(@RequestBody Map<String, String> request, HttpServletRequest req, HttpServletResponse res) {
 		String idToken = request.get("idToken");
 		if (idToken == null || idToken.trim().isEmpty()) {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new AuthResponse(null, "Google ID token is required"));
@@ -207,10 +264,17 @@ public class AuthController {
 		try {
 			User user = userService.loginOrRegisterGoogle(idToken);
 			String token = jwtService.generateToken(user);
-			attachJwtCookie(response, token);
+			attachJwtCookie(res, token);
 			
-			RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
-			attachRefreshTokenCookie(response, refreshToken.getToken());
+			String ip = extractIpAddress(req);
+			String device = extractDeviceInfo(req);
+			
+			try {
+				RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId(), device, ip);
+				attachRefreshTokenCookie(res, refreshToken.getToken());
+			} catch (DeviceLimitExceededException e) {
+				return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getActiveSessions());
+			}
 			
 			return ResponseEntity.ok(new AuthResponse(token, "Login successful"));
 		} catch (Exception e) {
@@ -239,5 +303,46 @@ public class AuthController {
 				return ResponseEntity.ok(new AuthResponse(token, "Token refreshed successfully"));
 			})
 			.orElseThrow(() -> new RuntimeException("Refresh token is not in database!"));
+	}
+
+	@GetMapping("/sessions")
+	public ResponseEntity<List<SessionDto>> getSessions(
+			@RequestHeader("Authorization") String authHeader,
+			@CookieValue(name = "refresh_token", required = false) String requestRefreshToken) {
+		
+		if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+		}
+		
+		String token = authHeader.substring(7);
+		if (!jwtService.isTokenValid(token)) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+		}
+		
+		Long userId = jwtService.extractUserId(token);
+		return ResponseEntity.ok(refreshTokenService.getActiveSessions(userId, requestRefreshToken));
+	}
+
+	@DeleteMapping("/sessions/{id}")
+	public ResponseEntity<MessageResponse> revokeSession(
+			@RequestHeader("Authorization") String authHeader,
+			@PathVariable Long id) {
+		
+		if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+		}
+		
+		String token = authHeader.substring(7);
+		if (!jwtService.isTokenValid(token)) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+		}
+		
+		Long userId = jwtService.extractUserId(token);
+		try {
+			refreshTokenService.deleteByIdAndUserId(id, userId);
+			return ResponseEntity.ok(new MessageResponse("Session revoked successfully"));
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new MessageResponse(e.getMessage()));
+		}
 	}
 }
